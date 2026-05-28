@@ -1,12 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { UploadZone } from "./UploadZone";
 
 describe("UploadZone", () => {
   it("renders the upload area", () => {
     render(<UploadZone />);
-    expect(screen.getByText(/Drop your CV here/i)).toBeDefined();
-    expect(screen.getByText(/Supports PDF and text files/i)).toBeDefined();
+    expect(screen.getByText(/Soltá tu CV acá o hacé clic para buscar/i)).toBeDefined();
+    expect(screen.getByText(/Soporta PDF y TXT/i)).toBeDefined();
   });
 
   it("displays error for unsupported file type", async () => {
@@ -16,24 +16,10 @@ describe("UploadZone", () => {
     const input = screen.getByTestId("file-input") as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
 
-    expect(await screen.findByText(/Only PDF and text files are accepted/i)).toBeDefined();
+    expect(await screen.findByText(/Solo se aceptan archivos PDF y TXT/i)).toBeDefined();
   });
 
-  it("calls onFileParsed for valid text file", async () => {
-    const handleParsed = vi.fn();
-
-    render(<UploadZone onFileParsed={handleParsed} />);
-
-    const file = new File(["Hello World"], "resume.txt", { type: "text/plain" });
-    const input = screen.getByTestId("file-input") as HTMLInputElement;
-    fireEvent.change(input, { target: { files: [file] } });
-
-    await vi.waitFor(() => {
-      expect(handleParsed).toHaveBeenCalledWith("Hello World", "resume.txt");
-    });
-  });
-
-  it("shows file name after upload", async () => {
+  it("shows file name after upload attempt", async () => {
     render(<UploadZone />);
 
     const file = new File(["test"], "resume.pdf", { type: "application/pdf" });

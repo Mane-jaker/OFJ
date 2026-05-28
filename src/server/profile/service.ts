@@ -109,3 +109,13 @@ export async function getProfileByEmail(
     education: result.education as Education[],
   };
 }
+
+export async function hasAnyProfile(): Promise<boolean> {
+  const db = getDb();
+  const result = db
+    .select({ id: profiles.id })
+    .from(profiles)
+    .limit(1)
+    .get();
+  return result !== undefined;
+}

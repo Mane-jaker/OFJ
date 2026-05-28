@@ -2,20 +2,12 @@
 
 import { useState, useRef, type DragEvent, type ChangeEvent } from "react";
 import { cn } from "@/lib/utils";
+import { uploadCv } from "@/server/profile/actions";
 
-interface UploadZoneProps {
-  onFileParsed?: (text: string, fileName: string) => void;
-  onError?: (error: string) => void;
-}
-
-const ACCEPTED_TYPES = [
-  "application/pdf",
-  "text/plain",
-];
-
+const ACCEPTED_TYPES = ["application/pdf", "text/plain"];
 const ACCEPTED_EXTENSIONS = [".pdf", ".txt"];
 
-export function UploadZone({ onFileParsed, onError }: UploadZoneProps) {
+export function UploadZone() {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -29,9 +21,7 @@ export function UploadZone({ onFileParsed, onError }: UploadZoneProps) {
     );
 
     if (!isAcceptedType && !hasAcceptedExt) {
-      const msg = "Only PDF and text files are accepted.";
-      setError(msg);
-      onError?.(msg);
+      setError("Solo se aceptan archivos PDF y TXT");
       return false;
     }
 
@@ -42,14 +32,16 @@ export function UploadZone({ onFileParsed, onError }: UploadZoneProps) {
     setError(null);
     setIsProcessing(true);
 
+    const fd = new FormData();
+    fd.append("file", file);
+
     try {
-      const text = await file.text();
-      setFileName(file.name);
-      onFileParsed?.(text, file.name);
+      const result = await uploadCv(fd);
+      if (result?.error) {
+        setError(result.error);
+      }
     } catch {
-      const msg = "Failed to read file. Please try again.";
-      setError(msg);
-      onError?.(msg);
+      setError("No se pudo leer el CV. Intentá con otro archivo o completá manualmente");
     } finally {
       setIsProcessing(false);
     }
@@ -70,6 +62,7 @@ export function UploadZone({ onFileParsed, onError }: UploadZoneProps) {
 
     const file = e.dataTransfer.files[0];
     if (!file) return;
+    setFileName(file.name);
 
     if (validateFile(file)) {
       processFile(file);
@@ -79,6 +72,7 @@ export function UploadZone({ onFileParsed, onError }: UploadZoneProps) {
   function handleFileSelect(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setFileName(file.name);
 
     if (validateFile(file)) {
       processFile(file);
@@ -99,20 +93,21 @@ export function UploadZone({ onFileParsed, onError }: UploadZoneProps) {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => !isProcessing && inputRef.current?.click()}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
+          if ((e.key === "Enter" || e.key === " ") && !isProcessing) {
             inputRef.current?.click();
           }
         }}
         role="button"
         tabIndex={0}
-        aria-label="Upload your CV"
+        aria-label="Subí tu CV"
         className={cn(
           "flex w-full max-w-lg cursor-pointer flex-col items-center gap-4 rounded-[16px] border-2 border-dashed p-12 transition-colors",
           isDragging
             ? "border-[var(--color-accent)] bg-[var(--color-accent)]/5"
             : "border-[var(--color-border)] hover:border-[var(--color-muted)]",
+          isProcessing && "pointer-events-none opacity-50",
         )}
       >
         <svg
@@ -129,7 +124,7 @@ export function UploadZone({ onFileParsed, onError }: UploadZoneProps) {
           />
         </svg>
 
-        {fileName ? (
+        {fileName && !isProcessing ? (
           <div className="flex flex-col items-center gap-2">
             <p className="text-sm font-medium text-[var(--color-fg)]">
               {fileName}
@@ -142,18 +137,18 @@ export function UploadZone({ onFileParsed, onError }: UploadZoneProps) {
               }}
               className="text-xs text-[var(--color-accent)] hover:underline"
             >
-              Remove
+              Quitar
             </button>
           </div>
         ) : (
           <>
             <p className="text-base font-medium text-[var(--color-fg)]">
               {isProcessing
-                ? "Processing..."
-                : "Drop your CV here or click to browse"}
+                ? "Extrayendo datos de tu CV..."
+                : "Soltá tu CV acá o hacé clic para buscar"}
             </p>
             <p className="text-sm text-[var(--color-muted)]">
-              Supports PDF and text files
+              Soporta PDF y TXT
             </p>
           </>
         )}
