@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Container } from "@/components/layout/Container";
-import { ProgressBar } from "@/components/layout/ProgressBar";
 import { SearchOverlay } from "@/components/results/SearchOverlay";
 import { JobCard } from "@/components/results/JobCard";
 import { FilterChips } from "@/components/results/FilterChips";
@@ -88,7 +87,6 @@ export default function ResultsPage() {
 
   return (
     <Container variant="results" className="py-10">
-      <ProgressBar currentStep={3} />
 
       <h1 className="mb-8 text-2xl font-bold">Results</h1>
 
@@ -106,10 +104,10 @@ export default function ResultsPage() {
             No search in progress. Start a search to see results.
           </p>
           <Link
-            href="/search"
+            href="/home"
             className="inline-flex rounded-[10px] bg-[var(--color-accent)] px-6 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
           >
-            Go to Search
+            Ir al Dashboard
           </Link>
         </div>
       )}
@@ -120,10 +118,10 @@ export default function ResultsPage() {
             Something went wrong with your search.
           </p>
           <Link
-            href="/search"
+            href="/home"
             className="inline-flex rounded-[10px] bg-[var(--color-accent)] px-6 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
           >
-            Try Again
+            Volver al Dashboard
           </Link>
         </div>
       )}

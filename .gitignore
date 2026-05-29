@@ -5,3 +5,7 @@ node_modules/
 .env
 .env.local
 tmp/
+.atl/
+*.db-shm
+*.db-wal
+docs/

@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
 
 let db: ReturnType<typeof drizzle<typeof schema>>;
+let tablesCreated = false;
 
 export function getDb(): ReturnType<typeof drizzle<typeof schema>> {
   if (db) return db;
@@ -17,6 +18,12 @@ export function getDb(): ReturnType<typeof drizzle<typeof schema>> {
   sqlite.pragma("foreign_keys = ON");
 
   db = drizzle(sqlite, { schema });
+
+  if (!tablesCreated && !isTest) {
+    createTables();
+    tablesCreated = true;
+  }
+
   return db;
 }
 

@@ -4,9 +4,9 @@ import { Footer } from "@/components/layout/Footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CVRise — AI-Powered Job Search",
+  title: "OFJ — Optimiza tu búsqueda laboral",
   description:
-    "Upload your CV, configure your search across multiple platforms, and let AI find the perfect opportunities.",
+    "Subí tu CV, encontrá las mejores oportunidades laborales y no te pierdas ninguna postulación.",
 };
 
 export default function RootLayout({

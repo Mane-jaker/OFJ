@@ -119,3 +119,21 @@ export async function hasAnyProfile(): Promise<boolean> {
     .get();
   return result !== undefined;
 }
+
+export async function getFirstProfile(): Promise<Profile | null> {
+  const db = getDb();
+  const result = db
+    .select()
+    .from(profiles)
+    .limit(1)
+    .get();
+
+  if (!result) return null;
+
+  return {
+    ...result,
+    skills: result.skills as string[],
+    experience: result.experience as Experience[],
+    education: result.education as Education[],
+  };
+}

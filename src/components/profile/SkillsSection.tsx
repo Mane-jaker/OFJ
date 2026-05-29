@@ -4,16 +4,22 @@ import { useState, type KeyboardEvent } from "react";
 
 interface SkillsSectionProps {
   skills: string[];
-  onChange: (skills: string[]) => void;
+  onChange?: (skills: string[]) => void;
+  readOnly?: boolean;
 }
 
-export function SkillsSection({ skills, onChange }: SkillsSectionProps) {
+export function SkillsSection({
+  skills,
+  onChange,
+  readOnly = false,
+}: SkillsSectionProps) {
   const [input, setInput] = useState("");
 
   function addSkill() {
+    if (readOnly) return;
     const trimmed = input.trim();
     if (trimmed && !skills.includes(trimmed)) {
-      onChange([...skills, trimmed]);
+      onChange?.([...skills, trimmed]);
     }
     setInput("");
   }
@@ -26,12 +32,13 @@ export function SkillsSection({ skills, onChange }: SkillsSectionProps) {
   }
 
   function removeSkill(skill: string) {
-    onChange(skills.filter((s) => s !== skill));
+    if (readOnly) return;
+    onChange?.(skills.filter((s) => s !== skill));
   }
 
   return (
     <div className="space-y-3">
-      <h3 className="text-lg font-semibold">Skills</h3>
+      <h3 className="text-lg font-semibold">Habilidades</h3>
 
       <div className="flex flex-wrap gap-2">
         {skills.map((skill) => (
@@ -40,30 +47,42 @@ export function SkillsSection({ skills, onChange }: SkillsSectionProps) {
             className="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--color-accent)]/10 px-3 py-1 text-sm text-[var(--color-accent)]"
           >
             {skill}
-            <button
-              type="button"
-              onClick={() => removeSkill(skill)}
-              className="inline-flex h-4 w-4 items-center justify-center rounded-full text-xs hover:bg-[var(--color-accent)]/20"
-              aria-label={`Remove ${skill}`}
-            >
-              ✕
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => removeSkill(skill)}
+                className="inline-flex h-4 w-4 items-center justify-center rounded-full text-xs hover:bg-[var(--color-accent)]/20"
+                aria-label={`Remove ${skill}`}
+              >
+                ✕
+              </button>
+            )}
           </span>
         ))}
+        {skills.length === 0 && (
+          <p className="text-sm text-[var(--color-muted)]">
+            {readOnly
+              ? "Sin habilidades registradas"
+              : "No skills added yet."}
+          </p>
+        )}
       </div>
 
-      <input
-        type="text"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Type a skill and press Enter"
-        className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-      />
-
-      <p className="text-xs text-[var(--color-muted)]">
-        Press Enter to add a skill
-      </p>
+      {!readOnly && (
+        <>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a skill and press Enter"
+            className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+          />
+          <p className="text-xs text-[var(--color-muted)]">
+            Press Enter to add a skill
+          </p>
+        </>
+      )}
     </div>
   );
 }

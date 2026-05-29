@@ -1,12 +1,16 @@
+import { getFirstProfile } from "@/server/profile/service";
 import { Container } from "@/components/layout/Container";
+import { redirect } from "next/navigation";
+import { DashboardContent } from "@/components/dashboard/DashboardContent";
 
-export default function HomePage() {
-  return (
-    <Container variant="landing" className="py-20 text-center">
-      <h1 className="text-3xl font-bold">Dashboard — próximamente</h1>
-      <p className="mt-4 text-[var(--color-muted)]">
-        Acá vas a poder gestionar tu búsqueda laboral.
-      </p>
-    </Container>
-  );
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const profile = await getFirstProfile();
+
+  if (!profile) {
+    redirect("/");
+  }
+
+  return <DashboardContent profile={profile} />;
 }

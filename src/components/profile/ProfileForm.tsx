@@ -11,8 +11,9 @@ export interface ProfileFormState {
 
 interface ProfileFormProps {
   initialData?: Partial<ProfileFormState>;
-  onSave: (data: ProfileFormState) => Promise<void>;
+  onSave?: (data: ProfileFormState) => Promise<void>;
   isSaving?: boolean;
+  readOnly?: boolean;
 }
 
 function validateEmail(email: string): boolean {
@@ -23,6 +24,7 @@ export function ProfileForm({
   initialData,
   onSave,
   isSaving: externalSaving,
+  readOnly = false,
 }: ProfileFormProps) {
   const [form, setForm] = useState<ProfileFormState>({
     name: initialData?.name ?? "",
@@ -31,7 +33,9 @@ export function ProfileForm({
     location: initialData?.location ?? "",
   });
 
-  const [errors, setErrors] = useState<Partial<Record<keyof ProfileFormState, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof ProfileFormState, string>>
+  >({});
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -62,7 +66,7 @@ export function ProfileForm({
 
     setIsSaving(true);
     try {
-      await onSave(form);
+      await onSave?.(form);
       setSuccess(true);
     } finally {
       setIsSaving(false);
@@ -78,6 +82,45 @@ export function ProfileForm({
         return next;
       });
     }
+  }
+
+  if (readOnly) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+            Nombre
+          </span>
+          <p className="mt-1 text-base text-[var(--color-fg)]">
+            {form.name || "—"}
+          </p>
+        </div>
+        <div>
+          <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+            Email
+          </span>
+          <p className="mt-1 text-base text-[var(--color-fg)]">
+            {form.email || "—"}
+          </p>
+        </div>
+        <div>
+          <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+            Título profesional
+          </span>
+          <p className="mt-1 text-base text-[var(--color-fg)]">
+            {form.title || "—"}
+          </p>
+        </div>
+        <div>
+          <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+            Ubicación
+          </span>
+          <p className="mt-1 text-base text-[var(--color-fg)]">
+            {form.location || "—"}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

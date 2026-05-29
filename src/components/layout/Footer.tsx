@@ -5,27 +5,21 @@ export function Footer() {
     <footer className="border-t border-[var(--color-border)] py-8">
       <div className="container-landing flex flex-col items-center justify-between gap-4 sm:flex-row">
         <p className="text-sm text-[var(--color-muted)]">
-          &copy; 2026 CVRise
+          &copy; 2026 OFJ
         </p>
 
         <nav className="flex items-center gap-6">
           <Link
-            href="/profile"
+            href="/home"
             className="text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-fg)]"
           >
-            Profile
-          </Link>
-          <Link
-            href="/search"
-            className="text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-fg)]"
-          >
-            Search
+            Dashboard
           </Link>
           <Link
             href="/results"
             className="text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-fg)]"
           >
-            Results
+            Resultados
           </Link>
         </nav>
       </div>

@@ -2,16 +2,18 @@
 
 import { useState, useRef, type DragEvent, type ChangeEvent } from "react";
 import { cn } from "@/lib/utils";
-import { uploadCv } from "@/server/profile/actions";
+
+interface UploadZoneProps {
+  onFileSelected: (file: File | null) => void;
+  selectedFile: File | null;
+}
 
 const ACCEPTED_TYPES = ["application/pdf", "text/plain"];
 const ACCEPTED_EXTENSIONS = [".pdf", ".txt"];
 
-export function UploadZone() {
+export function UploadZone({ onFileSelected, selectedFile }: UploadZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function validateFile(file: File): boolean {
@@ -28,22 +30,33 @@ export function UploadZone() {
     return true;
   }
 
-  async function processFile(file: File) {
+  function handleSelect(file: File) {
     setError(null);
-    setIsProcessing(true);
+    if (validateFile(file)) {
+      onFileSelected(file);
+    }
+  }
 
-    const fd = new FormData();
-    fd.append("file", file);
+  function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
 
-    try {
-      const result = await uploadCv(fd);
-      if (result?.error) {
-        setError(result.error);
-      }
-    } catch {
-      setError("No se pudo leer el CV. Intentá con otro archivo o completá manualmente");
-    } finally {
-      setIsProcessing(false);
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    handleSelect(file);
+  }
+
+  function handleFileSelect(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    handleSelect(file);
+  }
+
+  function handleRemove() {
+    onFileSelected(null);
+    setError(null);
+    if (inputRef.current) {
+      inputRef.current.value = "";
     }
   }
 
@@ -56,46 +69,15 @@ export function UploadZone() {
     setIsDragging(false);
   }
 
-  function handleDrop(e: DragEvent) {
-    e.preventDefault();
-    setIsDragging(false);
-
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
-    setFileName(file.name);
-
-    if (validateFile(file)) {
-      processFile(file);
-    }
-  }
-
-  function handleFileSelect(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setFileName(file.name);
-
-    if (validateFile(file)) {
-      processFile(file);
-    }
-  }
-
-  function handleRemove() {
-    setFileName(null);
-    setError(null);
-    if (inputRef.current) {
-      inputRef.current.value = "";
-    }
-  }
-
   return (
     <div className="flex flex-col items-center">
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => !isProcessing && inputRef.current?.click()}
+        onClick={() => inputRef.current?.click()}
         onKeyDown={(e) => {
-          if ((e.key === "Enter" || e.key === " ") && !isProcessing) {
+          if (e.key === "Enter" || e.key === " ") {
             inputRef.current?.click();
           }
         }}
@@ -107,7 +89,6 @@ export function UploadZone() {
           isDragging
             ? "border-[var(--color-accent)] bg-[var(--color-accent)]/5"
             : "border-[var(--color-border)] hover:border-[var(--color-muted)]",
-          isProcessing && "pointer-events-none opacity-50",
         )}
       >
         <svg
@@ -124,10 +105,10 @@ export function UploadZone() {
           />
         </svg>
 
-        {fileName && !isProcessing ? (
+        {selectedFile ? (
           <div className="flex flex-col items-center gap-2">
             <p className="text-sm font-medium text-[var(--color-fg)]">
-              {fileName}
+              {selectedFile.name}
             </p>
             <button
               type="button"
@@ -143,9 +124,7 @@ export function UploadZone() {
         ) : (
           <>
             <p className="text-base font-medium text-[var(--color-fg)]">
-              {isProcessing
-                ? "Extrayendo datos de tu CV..."
-                : "Soltá tu CV acá o hacé clic para buscar"}
+              Soltá tu CV acá o hacé clic para buscar
             </p>
             <p className="text-sm text-[var(--color-muted)]">
               Soporta PDF y TXT
