@@ -5,7 +5,7 @@ export function Footer() {
     <footer className="border-t border-[var(--color-border)] py-8">
       <div className="container-landing flex flex-col items-center justify-between gap-4 sm:flex-row">
         <p className="text-sm text-[var(--color-muted)]">
-          &copy; 2026 OFJ
+          &copy; 2026 OFJ — Open source, local, free.
         </p>
 
         <nav className="flex items-center gap-6">
@@ -16,10 +16,10 @@ export function Footer() {
             Dashboard
           </Link>
           <Link
-            href="/results"
+            href="/jobs"
             className="text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-fg)]"
           >
-            Resultados
+            Jobs
           </Link>
         </nav>
       </div>

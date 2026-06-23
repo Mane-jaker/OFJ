@@ -21,6 +21,7 @@ function createTestSearch(db: ReturnType<typeof getDb>, profileId: string): stri
     id,
     profileId,
     platforms: ["linkedin"],
+    searchTerms: ["react"],
     createdAt: new Date(),
   }).run();
   return id;
@@ -92,6 +93,7 @@ describe("Database Schema", () => {
         id,
         profileId,
         platforms: ["linkedin"],
+        searchTerms: ["react", "remote"],
         createdAt: new Date(),
       }).run();
 
@@ -107,7 +109,7 @@ describe("Database Schema", () => {
   });
 
   describe("Job listings table", () => {
-    it("defaults applied and saved to 0", () => {
+    it("defaults isFavorite and isViewed to 0", () => {
       const db = getDb();
       const id = nanoid();
 
@@ -129,8 +131,8 @@ describe("Database Schema", () => {
         .find((j) => j.id === id);
 
       expect(found).toBeDefined();
-      expect(found?.applied).toBe(0);
-      expect(found?.saved).toBe(0);
+      expect(found?.isFavorite).toBe(0);
+      expect(found?.isViewed).toBe(0);
     });
   });
 

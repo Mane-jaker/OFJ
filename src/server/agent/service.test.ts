@@ -35,7 +35,7 @@ describe("Agent Service", () => {
     const result = await createSearch({
       profileId: testProfileId,
       platforms: ["linkedin"],
-      apiKey: "sk-test",
+      searchTerms: ["react", "nextjs"],
       model: "gpt-4",
     });
 
@@ -49,16 +49,14 @@ describe("Agent Service", () => {
     const { id } = await createSearch({
       profileId: testProfileId,
       platforms: ["linkedin"],
-      apiKey: "sk-test",
+      searchTerms: ["react"],
       model: "gpt-4",
     });
 
-    // Transition to running
     await updateSearchStatus(id, "running");
     let status = await getSearchStatus(id);
     expect(status?.status).toBe("running");
 
-    // Transition to completed
     await updateSearchStatus(id, "completed");
     status = await getSearchStatus(id);
     expect(status?.status).toBe("completed");
@@ -68,7 +66,7 @@ describe("Agent Service", () => {
     const { id } = await createSearch({
       profileId: testProfileId,
       platforms: ["indeed"],
-      apiKey: "sk-test-2",
+      searchTerms: ["python"],
       model: "claude-3.5-sonnet",
     });
 
@@ -81,7 +79,7 @@ describe("Agent Service", () => {
     const { id } = await createSearch({
       profileId: testProfileId,
       platforms: ["linkedin", "indeed"],
-      apiKey: "sk-full",
+      searchTerms: ["react", "remote"],
       model: "gpt-4o",
     });
 
@@ -89,5 +87,6 @@ describe("Agent Service", () => {
     expect(search).not.toBeNull();
     expect(search!.platforms).toEqual(["linkedin", "indeed"]);
     expect(search!.model).toBe("gpt-4o");
+    expect(search!.searchTerms).toEqual(["react", "remote"]);
   });
 });

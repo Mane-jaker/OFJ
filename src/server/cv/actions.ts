@@ -1,65 +1,112 @@
 "use server";
 
-import { getProfile } from "@/server/profile/service";
-import { generateCVContent, saveCV as saveCVService } from "./service";
+import { getFirstProfile } from "@/server/profile/service";
+import {
+  generateCv as generateCvService,
+  getCvByJobListing,
+  getCvBuffer,
+} from "./service";
+import { getDb } from "@/server/db";
+import { generatedCvs } from "@/server/db/schema";
+import { eq } from "drizzle-orm";
 
-export async function generateCV(
-  profileId: string,
-  jobListingId?: string,
-): Promise<{ content: string; error?: string }> {
+export async function generateCv(
+  jobListingId: string,
+): Promise<{ success: boolean; filePath?: string; error?: string }> {
   try {
-    const profile = await getProfile(profileId);
+    const profile = await getFirstProfile();
     if (!profile) {
-      return { content: "", error: "Profile not found" };
+      return { success: false, error: "No profile found" };
     }
 
-    // Fetch job details if targeting a specific listing
-    let jobTitle: string | undefined;
-    let jobDescription: string | undefined;
+    const result = await generateCvService(profile.id, jobListingId);
 
-    if (jobListingId) {
-      const { getDb } = await import("@/server/db");
-      const { jobListings } = await import("@/server/db/schema");
-      const { eq } = await import("drizzle-orm");
-
-      const listing = getDb()
-        .select()
-        .from(jobListings)
-        .where(eq(jobListings.id, jobListingId))
-        .get();
-
-      if (listing) {
-        jobTitle = listing.title;
-        jobDescription = listing.description ?? undefined;
-      }
-    }
-
-    const content = await generateCVContent(profile, {
-      jobTitle,
-      jobDescription,
-    });
-
-    return { content };
+    return { success: true, filePath: result.filePath };
   } catch (error) {
     return {
-      content: "",
+      success: false,
       error: error instanceof Error ? error.message : "Failed to generate CV",
     };
   }
 }
 
-export async function saveCV(data: {
-  profileId: string;
-  jobListingId?: string;
-  content: string;
-}): Promise<{ id: string; error?: string }> {
+export async function getCvStatus(
+  jobListingId: string,
+): Promise<{ exists: boolean; filePath?: string }> {
   try {
-    const result = await saveCVService(data);
-    return result;
+    return await getCvByJobListing(jobListingId);
+  } catch {
+    return { exists: false };
+  }
+}
+
+export async function downloadCv(
+  jobListingId: string,
+): Promise<{ success: boolean; data?: Uint8Array; error?: string }> {
+  try {
+    const buffer = await getCvBuffer(jobListingId);
+    if (!buffer) {
+      return { success: false, error: "CV not found" };
+    }
+
+    return {
+      success: true,
+      data: new Uint8Array(buffer),
+    };
   } catch (error) {
     return {
-      id: "",
-      error: error instanceof Error ? error.message : "Failed to save CV",
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to download CV",
+    };
+  }
+}
+
+export async function getCvTailoredData(
+  jobListingId: string,
+): Promise<{
+  success: boolean;
+  name?: string;
+  tailoredSummary?: string;
+  tailoredSkills?: string[];
+  tailoredExperience?: Array<{
+    title: string;
+    company: string;
+    dates: string;
+    bullets: string[];
+  }>;
+  error?: string;
+}> {
+  try {
+    const db = getDb();
+    const record = db
+      .select()
+      .from(generatedCvs)
+      .where(eq(generatedCvs.jobListingId, jobListingId))
+      .get();
+
+    if (!record) {
+      return { success: false, error: "CV not found" };
+    }
+
+    const profile = await getFirstProfile();
+
+    return {
+      success: true,
+      name: profile?.name ?? "",
+      tailoredSummary: record.tailoredSummary ?? "",
+      tailoredSkills: (record.tailoredSkills as string[]) ?? [],
+      tailoredExperience:
+        (record.tailoredExperience as Array<{
+          title: string;
+          company: string;
+          dates: string;
+          bullets: string[];
+        }>) ?? [],
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to load CV",
     };
   }
 }

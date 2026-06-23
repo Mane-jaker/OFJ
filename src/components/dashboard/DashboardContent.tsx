@@ -1,100 +1,334 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Container } from "@/components/layout/Container";
-import { ProfileForm } from "@/components/profile/ProfileForm";
+import { ProfileForm, type ProfileFormState } from "@/components/profile/ProfileForm";
 import { ExperienceSection } from "@/components/profile/ExperienceSection";
 import { SkillsSection } from "@/components/profile/SkillsSection";
 import { EducationSection } from "@/components/profile/EducationSection";
-import { PlatformSelector } from "@/components/search/PlatformSelector";
 import { AgentConfig } from "@/components/search/AgentConfig";
+import { SearchChips } from "@/components/dashboard/SearchChips";
+import {
+  HistoryTabs,
+  type ViewedJob,
+  type SearchHistoryItem,
+  type FavoriteJob,
+} from "@/components/dashboard/HistoryTabs";
+import { updateProfile } from "@/server/profile/actions";
+import { startSearch } from "@/server/agent/actions";
+import { SearchProgress } from "@/components/search/SearchProgress";
+import type { Experience, Education } from "@/server/db/schema";
 
 interface ProfileData {
+  id: string;
   name: string;
   email: string;
   title?: string | null;
   location?: string | null;
   skills?: string[];
-  experience?: { company: string; title: string; startDate: string; endDate?: string; description?: string }[];
-  education?: { institution: string; degree: string; field: string; startYear: number; endYear?: number }[];
+  experience?: Experience[];
+  education?: Education[];
 }
 
 interface DashboardContentProps {
   profile: ProfileData;
+  viewedJobs: ViewedJob[];
+  searches: SearchHistoryItem[];
+  favoriteJobs: FavoriteJob[];
 }
 
-export function DashboardContent({ profile }: DashboardContentProps) {
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["linkedin"]);
-  const [apiKey, setApiKey] = useState("");
+const RESULT_OPTIONS = [10, 20, 50];
+
+export function DashboardContent({
+  profile,
+  viewedJobs,
+  searches,
+  favoriteJobs,
+}: DashboardContentProps) {
+  const router = useRouter();
   const [model, setModel] = useState("");
+  const [resultsCount, setResultsCount] = useState<number>(20);
+  const [searchTerms, setSearchTerms] = useState<string[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [currentSearchId, setCurrentSearchId] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  // Editable profile state (kept separate from read-only prop)
+  const [draftSkills, setDraftSkills] = useState<string[]>(profile.skills ?? []);
+  const [draftExperience, setDraftExperience] = useState<Experience[]>(
+    profile.experience ?? [],
+  );
+  const [draftEducation, setDraftEducation] = useState<Education[]>(
+    profile.education ?? [],
+  );
+
+  function handleEdit() {
+    setDraftSkills(profile.skills ?? []);
+    setDraftExperience(profile.experience ?? []);
+    setDraftEducation(profile.education ?? []);
+    setIsEditing(true);
+    setSaveError(null);
+  }
+
+  function handleCancel() {
+    setIsEditing(false);
+    setSaveError(null);
+  }
+
+  async function handleSearch() {
+    if (searchTerms.length === 0) {
+      setSearchError("Agregá al menos un término de búsqueda.");
+      return;
+    }
+    setSearchError(null);
+    setIsSearching(true);
+    try {
+      const platform = ["linkedin"];
+      const result = await startSearch({
+        platforms: platform,
+        searchTerms,
+        model: model || undefined,
+        maxResults: resultsCount,
+      });
+      if (!result.searchId) {
+        setIsSearching(false);
+        setSearchError(result.error ?? "No se pudo iniciar la búsqueda.");
+        return;
+      }
+      setCurrentSearchId(result.searchId);
+    } catch (err) {
+      setIsSearching(false);
+      setSearchError(
+        err instanceof Error ? err.message : "No se pudo iniciar la búsqueda.",
+      );
+    }
+  }
+
+  function handleSearchComplete() {
+    if (currentSearchId) {
+      router.push(`/jobs?searchId=${currentSearchId}`);
+    }
+    setIsSearching(false);
+    setCurrentSearchId(null);
+  }
+
+  function handleSearchFailed(error: string) {
+    setSearchError(error);
+    setIsSearching(false);
+    setCurrentSearchId(null);
+  }
+
+  async function handleSave(data: ProfileFormState) {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const result = await updateProfile(profile.id, {
+        name: data.name,
+        email: data.email,
+        title: data.title || null,
+        location: data.location || null,
+        skills: draftSkills,
+        experience: draftExperience,
+        education: draftEducation,
+      });
+      if (result.success) {
+        setIsEditing(false);
+      } else {
+        setSaveError(result.error ?? "No se pudo guardar el perfil");
+      }
+    } catch {
+      setSaveError("No se pudo guardar el perfil");
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   return (
     <Container variant="landing" className="py-10">
-      {/* Título */}
       <h1 className="text-2xl font-bold text-[var(--color-fg)]">
         Hola, {profile.name || "👋"}
       </h1>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
-        {/* Columna principal — Perfil */}
-        <div className="space-y-8">
-          {/* Datos personales */}
-          <section className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-            <h2 className="mb-6 text-lg font-semibold text-[var(--color-fg)]">
+      <div className="mt-8 space-y-6">
+        {/* Section 1 — Search Configuration */}
+        <section id="search" className="card space-y-6">
+          <h2 className="text-lg font-semibold text-[var(--color-fg)]">
+            Buscar empleos
+          </h2>
+
+          <div className="space-y-2">
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+              Plataforma
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <span className="chip chip-active">LinkedIn</span>
+            </div>
+          </div>
+
+          <AgentConfig model={model} onModelChange={setModel} />
+
+          <div className="space-y-2">
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+              Cantidad de resultados
+            </span>
+            <div className="flex gap-2">
+              {RESULT_OPTIONS.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setResultsCount(opt)}
+                  className={`chip ${resultsCount === opt ? "chip-active" : ""}`}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+              Términos de búsqueda
+            </span>
+            <SearchChips terms={searchTerms} onChange={setSearchTerms} />
+          </div>
+
+          {searchError && (
+            <p
+              className="text-sm text-[var(--color-danger)]"
+              role="alert"
+            >
+              {searchError}
+            </p>
+          )}
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleSearch}
+              disabled={isSearching}
+              className="btn-primary disabled:opacity-60"
+            >
+              {isSearching ? "Buscando…" : "Buscar"}
+            </button>
+          </div>
+        </section>
+
+        {/* Section 2 — Profile */}
+        <section className="card space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-[var(--color-fg)]">
               Tu perfil
             </h2>
-            <ProfileForm
-              initialData={{
-                name: profile.name,
-                email: profile.email,
-                title: profile.title ?? undefined,
-                location: profile.location ?? undefined,
-              }}
-              readOnly
-            />
-          </section>
-
-          {/* Habilidades */}
-          <section className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-            <SkillsSection skills={profile.skills ?? []} readOnly />
-          </section>
-
-          {/* Experiencia */}
-          {profile.experience && profile.experience.length > 0 && (
-            <section className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-              <ExperienceSection experiences={profile.experience} readOnly />
-            </section>
-          )}
-
-          {/* Educación */}
-          {profile.education && profile.education.length > 0 && (
-            <section className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-              <EducationSection educations={profile.education} readOnly />
-            </section>
-          )}
-        </div>
-
-        {/* Columna lateral — Búsqueda */}
-        <aside className="space-y-6">
-          <div className="sticky top-24 space-y-6">
-            <section className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-              <PlatformSelector
-                platforms={selectedPlatforms}
-                onChange={setSelectedPlatforms}
-              />
-            </section>
-
-            <section className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-              <AgentConfig
-                apiKey={apiKey}
-                model={model}
-                onApiKeyChange={setApiKey}
-                onModelChange={setModel}
-              />
-            </section>
+            <div className="flex gap-2">
+              <button type="button" className="btn-secondary">
+                Actualizar CV
+              </button>
+              {!isEditing ? (
+                <button type="button" className="btn-primary" onClick={handleEdit}>
+                  Editar
+                </button>
+              ) : null}
+            </div>
           </div>
-        </aside>
+
+          {saveError && (
+            <p className="text-sm text-[var(--color-danger)]" role="alert">
+              {saveError}
+            </p>
+          )}
+
+          {isEditing ? (
+            <div className="space-y-8">
+              <ProfileForm
+                initialData={{
+                  name: profile.name,
+                  email: profile.email,
+                  title: profile.title ?? "",
+                  location: profile.location ?? "",
+                }}
+                onSave={handleSave}
+                isSaving={isSaving}
+              />
+              <SkillsSection
+                skills={draftSkills}
+                onChange={setDraftSkills}
+              />
+              <ExperienceSection
+                experiences={draftExperience}
+                onChange={setDraftExperience}
+              />
+              <EducationSection
+                educations={draftEducation}
+                onChange={setDraftEducation}
+              />
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() =>
+                    handleSave({
+                      name: profile.name,
+                      email: profile.email,
+                      title: profile.title ?? "",
+                      location: profile.location ?? "",
+                    })
+                  }
+                  disabled={isSaving}
+                >
+                  {isSaving ? "Guardando…" : "Guardar"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleCancel}
+                  disabled={isSaving}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              <ProfileForm
+                initialData={{
+                  name: profile.name,
+                  email: profile.email,
+                  title: profile.title ?? "",
+                  location: profile.location ?? "",
+                }}
+                readOnly
+              />
+              <SkillsSection skills={profile.skills ?? []} readOnly />
+              <ExperienceSection experiences={profile.experience ?? []} readOnly />
+              <EducationSection educations={profile.education ?? []} readOnly />
+            </div>
+          )}
+        </section>
+
+        {/* Section 3 — History tabs */}
+        <section className="card space-y-4">
+          <h2 className="text-lg font-semibold text-[var(--color-fg)]">
+            Historial
+          </h2>
+          <HistoryTabs
+            viewedJobs={viewedJobs}
+            searches={searches}
+            favoriteJobs={favoriteJobs}
+          />
+        </section>
       </div>
+
+      {isSearching && currentSearchId && (
+        <SearchProgress
+          searchId={currentSearchId}
+          onComplete={handleSearchComplete}
+          onFailed={handleSearchFailed}
+        />
+      )}
     </Container>
   );
 }

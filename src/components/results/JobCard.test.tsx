@@ -3,6 +3,11 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { JobCard } from "./JobCard";
 
+vi.mock("@/server/agent/actions", () => ({
+  toggleJobFavorite: vi.fn().mockResolvedValue({ success: true, isFavorite: true }),
+  markJobViewed: vi.fn().mockResolvedValue({ success: true }),
+}));
+
 describe("JobCard", () => {
   const baseProps = {
     id: "job-1",
@@ -13,9 +18,9 @@ describe("JobCard", () => {
     url: "https://example.com/apply",
     location: "San Francisco, CA",
     salaryRange: "$150k - $200k",
-    matchScore: 0.85,
-    applied: false,
-    saved: false,
+    relevanceScore: 85,
+    isViewed: false,
+    isFavorite: false,
   };
 
   it("renders all fields", () => {
@@ -35,7 +40,7 @@ describe("JobCard", () => {
         {...baseProps}
         salaryRange={null}
         location={null}
-        matchScore={null}
+        relevanceScore={null}
       />,
     );
 
@@ -43,46 +48,35 @@ describe("JobCard", () => {
     expect(screen.queryByText("85% match")).toBeNull();
   });
 
-  it("shows Apply button and changes on click", async () => {
-    // Mock window.open
+  it("shows Ver vacante button and opens URL on click", async () => {
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
 
     render(<JobCard {...baseProps} />);
 
-    const applyButton = screen.getByText("Apply");
-    expect(applyButton).toBeDefined();
+    const viewButton = screen.getByText("Ver vacante");
+    expect(viewButton).toBeDefined();
 
-    await userEvent.click(applyButton);
+    await userEvent.click(viewButton);
 
     expect(openSpy).toHaveBeenCalledWith(
       "https://example.com/apply",
       "_blank",
       "noopener,noreferrer",
     );
-    expect(screen.getByText("Applied ✓")).toBeDefined();
 
     openSpy.mockRestore();
   });
 
-  it("toggles saved state", async () => {
-    const user = userEvent.setup();
+  it("shows viewed badge when already viewed", () => {
+    render(<JobCard {...baseProps} isViewed={true} />);
 
-    render(<JobCard {...baseProps} />);
-
-    // Click save button
-    const saveButton = screen.getAllByRole("button")[1]; // Second button
-    await user.click(saveButton);
+    expect(screen.getByText("Visto")).toBeDefined();
   });
 
-  it("shows applied state when already applied", () => {
-    render(<JobCard {...baseProps} applied={true} />);
+  it("reduces opacity when viewed", () => {
+    render(<JobCard {...baseProps} isViewed={true} />);
 
-    expect(screen.getByText("Applied ✓")).toBeDefined();
-  });
-
-  it("shows saved state when already saved", () => {
-    render(<JobCard {...baseProps} saved={true} />);
-
-    expect(screen.getByText("Saved")).toBeDefined();
+    const card = screen.getByText("Senior Engineer").closest("div");
+    expect(card?.className).toContain("opacity-60");
   });
 });

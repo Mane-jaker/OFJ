@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { toggleJobSaved } from "@/server/agent/actions";
+import { toggleJobFavorite, markJobViewed } from "@/server/agent/actions";
+import { CVPreview } from "@/components/cv/CVPreview";
 
 interface JobCardProps {
   id: string;
@@ -13,11 +14,11 @@ interface JobCardProps {
   url?: string | null;
   location?: string | null;
   salaryRange?: string | null;
-  matchScore?: number | null;
-  applied: boolean;
-  saved: boolean;
-  onApplied?: (jobId: string) => void;
-  onSaved?: (jobId: string, saved: boolean) => void;
+  relevanceScore?: number | null;
+  isViewed: boolean;
+  isFavorite: boolean;
+  onViewed?: (jobId: string) => void;
+  onFavorite?: (jobId: string, isFavorite: boolean) => void;
 }
 
 export function JobCard({
@@ -29,39 +30,40 @@ export function JobCard({
   url,
   location,
   salaryRange,
-  matchScore,
-  applied: initialApplied,
-  saved: initialSaved,
-  onApplied,
-  onSaved,
+  relevanceScore,
+  isViewed: initialViewed,
+  isFavorite: initialFavorite,
+  onViewed,
+  onFavorite,
 }: JobCardProps) {
-  const [isApplied, setIsApplied] = useState(initialApplied);
-  const [isSaved, setIsSaved] = useState(initialSaved);
-  const [isTogglingSaved, setIsTogglingSaved] = useState(false);
+  const [viewed, setViewed] = useState(initialViewed);
+  const [favorite, setFavorite] = useState(initialFavorite);
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
 
-  function handleApply() {
+  function handleView() {
     if (!url) return;
 
-    // Open the URL in a new tab
     window.open(url, "_blank", "noopener,noreferrer");
 
-    // Mark as applied
-    setIsApplied(true);
-    onApplied?.(id);
+    if (!viewed) {
+      setViewed(true);
+      markJobViewed(id);
+      onViewed?.(id);
+    }
   }
 
-  async function handleToggleSaved() {
-    if (isTogglingSaved) return;
-    setIsTogglingSaved(true);
+  async function handleToggleFavorite() {
+    if (isTogglingFavorite) return;
+    setIsTogglingFavorite(true);
 
     try {
-      const result = await toggleJobSaved(id);
+      const result = await toggleJobFavorite(id);
       if (result.success) {
-        setIsSaved(result.saved);
-        onSaved?.(id, result.saved);
+        setFavorite(result.isFavorite);
+        onFavorite?.(id, result.isFavorite);
       }
     } finally {
-      setIsTogglingSaved(false);
+      setIsTogglingFavorite(false);
     }
   }
 
@@ -72,43 +74,64 @@ export function JobCard({
   };
 
   return (
-    <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+    <div
+      className={cn(
+        "rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 transition-opacity",
+        viewed && "opacity-60",
+      )}
+    >
       <div className="mb-4 flex items-start justify-between">
         <div className="flex items-start gap-3">
           <span
             className={cn(
-              "rounded-[10px] px-2.5 py-1 text-xs font-medium capitalize",
-              platformColors[platform] ?? "bg-[var(--color-accent)]/10 text-[var(--color-accent)]",
+              "rounded-[8px] px-2.5 py-1 text-xs font-medium capitalize",
+              platformColors[platform] ??
+                "bg-[var(--color-accent)]/10 text-[var(--color-accent)]",
             )}
           >
             {platform}
           </span>
 
-          {matchScore !== null && matchScore !== undefined && (
-            <span className="rounded-[10px] bg-green-500/10 px-2.5 py-1 text-xs font-medium text-green-400">
-              {Math.round(matchScore * 100)}% match
+          {relevanceScore !== null && relevanceScore !== undefined && (
+            <span
+              className={cn(
+                "rounded-[8px] px-2.5 py-1 text-xs font-medium",
+                relevanceScore > 80
+                  ? "bg-[var(--color-success-bg)] text-[var(--color-success)]"
+                  : relevanceScore >= 50
+                    ? "bg-[var(--color-warning-bg)] text-[var(--color-warning)]"
+                    : "bg-[var(--color-chip-bg)] text-[var(--color-muted)]",
+              )}
+            >
+              {Math.round(relevanceScore)}% match
+            </span>
+          )}
+
+          {viewed && (
+            <span className="rounded-[8px] bg-[var(--color-chip-bg)] px-2.5 py-1 text-xs font-medium text-[var(--color-muted)]">
+              Visto
             </span>
           )}
         </div>
 
         <button
           type="button"
-          onClick={handleToggleSaved}
-          disabled={isTogglingSaved}
+          onClick={handleToggleFavorite}
+          disabled={isTogglingFavorite}
           className={cn(
             "transition-colors",
-            isSaved
+            favorite
               ? "text-[var(--color-accent)]"
               : "text-[var(--color-muted)] hover:text-[var(--color-fg)]",
           )}
-          aria-label={isSaved ? "Unsave job" : "Save job"}
+          aria-label={favorite ? "Remove favorite" : "Add favorite"}
         >
           <svg
             className="h-5 w-5"
-            fill={isSaved ? "currentColor" : "none"}
+            fill={favorite ? "currentColor" : "none"}
             viewBox="0 0 24 24"
             stroke="currentColor"
-            strokeWidth={isSaved ? 0 : 1.5}
+            strokeWidth={favorite ? 0 : 1.5}
           >
             <path
               strokeLinecap="round"
@@ -124,23 +147,8 @@ export function JobCard({
 
       {(location || salaryRange) && (
         <div className="mb-3 flex flex-wrap gap-3 text-xs text-[var(--color-muted)]">
-          {location && (
-            <span className="flex items-center gap-1">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-              </svg>
-              {location}
-            </span>
-          )}
-          {salaryRange && (
-            <span className="flex items-center gap-1">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {salaryRange}
-            </span>
-          )}
+          {location && <span>{location}</span>}
+          {salaryRange && <span>{salaryRange}</span>}
         </div>
       )}
 
@@ -153,32 +161,30 @@ export function JobCard({
       <div className="flex gap-3">
         <button
           type="button"
-          onClick={handleApply}
-          disabled={isApplied || !url}
+          onClick={handleView}
+          disabled={!url}
           className={cn(
-            "rounded-[10px] px-4 py-2 text-xs font-medium transition-all",
-            isApplied
-              ? "bg-green-500/10 text-green-400"
-              : "bg-[var(--color-accent)] text-white hover:opacity-90",
+            "btn-primary text-xs",
             !url && "cursor-not-allowed opacity-50",
           )}
         >
-          {isApplied ? "Applied ✓" : "Apply"}
+          Ver vacante
         </button>
 
         <button
           type="button"
-          onClick={handleToggleSaved}
-          disabled={isTogglingSaved}
+          onClick={handleToggleFavorite}
+          disabled={isTogglingFavorite}
           className={cn(
-            "rounded-[10px] border px-4 py-2 text-xs font-medium transition-all",
-            isSaved
-              ? "border-[var(--color-accent)] text-[var(--color-accent)]"
-              : "border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-fg)]",
+            "btn-secondary text-xs",
+            favorite &&
+              "border-[var(--color-accent)] text-[var(--color-accent)]",
           )}
         >
-          {isSaved ? "Saved" : "Save"}
+          {favorite ? "En favoritos" : "Favorito"}
         </button>
+
+        <CVPreview jobListingId={id} />
       </div>
     </div>
   );

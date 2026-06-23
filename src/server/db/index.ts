@@ -28,7 +28,7 @@ export function getDb(): ReturnType<typeof drizzle<typeof schema>> {
 }
 
 export function createTables() {
-  getDb(); // ensure db is initialized
+  getDb();
   type RawDb = InstanceType<typeof Database>;
   const raw = (db as unknown as { session: { client: RawDb } }).session.client;
 
@@ -52,7 +52,7 @@ export function createTables() {
       profile_id TEXT NOT NULL REFERENCES profiles(id),
       status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','running','completed','failed')),
       platforms TEXT DEFAULT '[]',
-      api_key TEXT,
+      search_terms TEXT DEFAULT '[]',
       model TEXT,
       filters TEXT DEFAULT '{}',
       results_count INTEGER DEFAULT 0,
@@ -67,12 +67,13 @@ export function createTables() {
       title TEXT NOT NULL,
       company TEXT NOT NULL,
       description TEXT,
-      url TEXT,
+      url TEXT UNIQUE,
       location TEXT,
       salary_range TEXT,
-      match_score REAL,
-      applied INTEGER DEFAULT 0,
-      saved INTEGER DEFAULT 0,
+      posted_date TEXT,
+      relevance_score REAL,
+      is_favorite INTEGER DEFAULT 0,
+      is_viewed INTEGER DEFAULT 0,
       created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
     );
     CREATE TABLE IF NOT EXISTS generated_cvs (
@@ -80,6 +81,9 @@ export function createTables() {
       profile_id TEXT NOT NULL REFERENCES profiles(id),
       job_listing_id TEXT REFERENCES job_listings(id),
       content TEXT NOT NULL,
+      tailored_summary TEXT,
+      tailored_skills TEXT DEFAULT '[]',
+      tailored_experience TEXT DEFAULT '[]',
       file_path TEXT,
       created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
     );

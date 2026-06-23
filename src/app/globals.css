@@ -2,17 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+[data-theme="dark"] {
   --color-bg: oklch(0.145 0 0);
   --color-surface: oklch(0.205 0 0);
+  --color-surface-hover: oklch(0.235 0 0);
   --color-fg: oklch(0.985 0 0);
-  --color-muted: oklch(0.37 0 0);
+  --color-muted: oklch(0.55 0 0);
   --color-border: oklch(0.27 0 0);
   --color-accent: oklch(0.546 0.245 262.88);
   --color-accent-hover: oklch(0.496 0.245 262.88);
+  --color-accent-fg: oklch(0.985 0 0);
+  --color-success: oklch(0.6 0.17 145);
+  --color-success-bg: oklch(0.27 0.06 145);
+  --color-warning: oklch(0.72 0.17 75);
+  --color-warning-bg: oklch(0.27 0.06 75);
+  --color-danger: oklch(0.62 0.24 25);
+  --color-danger-bg: oklch(0.27 0.06 25);
+  --color-chip-bg: oklch(0.25 0 0);
+  --color-chip-active: oklch(0.546 0.245 262.88);
+  --radius-sm: 8px;
   --radius-default: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 14px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+}
+
+[data-theme="light"] {
+  --color-bg: oklch(0.985 0 0);
+  --color-surface: oklch(1 0 0);
+  --color-surface-hover: oklch(0.96 0 0);
+  --color-fg: oklch(0.18 0 0);
+  --color-muted: oklch(0.5 0 0);
+  --color-border: oklch(0.9 0 0);
+  --color-accent: oklch(0.546 0.245 262.88);
+  --color-accent-hover: oklch(0.496 0.245 262.88);
+  --color-accent-fg: oklch(0.985 0 0);
+  --color-success: oklch(0.5 0.17 145);
+  --color-success-bg: oklch(0.93 0.05 145);
+  --color-warning: oklch(0.55 0.17 75);
+  --color-warning-bg: oklch(0.93 0.05 75);
+  --color-danger: oklch(0.52 0.24 25);
+  --color-danger-bg: oklch(0.93 0.05 25);
+  --color-chip-bg: oklch(0.93 0 0);
+  --color-chip-active: oklch(0.546 0.245 262.88);
+  --radius-sm: 8px;
+  --radius-default: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
 }
 
 @layer base {
@@ -38,6 +74,7 @@
     background-color: var(--color-bg);
     color: var(--color-fg);
     min-height: 100vh;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   a {
@@ -77,11 +114,69 @@
     padding-left: 1rem;
     padding-right: 1rem;
   }
+
+  .card {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface);
+    padding: 1.5rem;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    background-color: var(--color-chip-bg);
+    color: var(--color-fg);
+    border: 1px solid var(--color-border);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .chip-active {
+    background-color: var(--color-chip-active);
+    color: var(--color-accent-fg);
+    border-color: var(--color-chip-active);
+  }
+
+  .btn-primary {
+    border-radius: var(--radius-default);
+    background-color: var(--color-accent);
+    color: var(--color-accent-fg);
+    font-weight: 600;
+    padding: 0.625rem 1.25rem;
+    transition: background-color 0.15s ease;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--color-accent-hover);
+  }
+
+  .btn-secondary {
+    border-radius: var(--radius-default);
+    background-color: var(--color-surface);
+    color: var(--color-fg);
+    border: 1px solid var(--color-border);
+    font-weight: 500;
+    padding: 0.625rem 1.25rem;
+    transition: background-color 0.15s ease;
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--color-surface-hover);
+  }
 }
 
 @layer utilities {
   .bg-surface {
     background-color: var(--color-surface);
+  }
+
+  .bg-surface-hover {
+    background-color: var(--color-surface-hover);
   }
 
   .text-muted {
@@ -102,5 +197,29 @@
 
   .hover\:bg-accent-hover:hover {
     background-color: var(--color-accent-hover);
+  }
+
+  .text-success {
+    color: var(--color-success);
+  }
+
+  .bg-success-bg {
+    background-color: var(--color-success-bg);
+  }
+
+  .text-warning {
+    color: var(--color-warning);
+  }
+
+  .bg-warning-bg {
+    background-color: var(--color-warning-bg);
+  }
+
+  .text-danger {
+    color: var(--color-danger);
+  }
+
+  .bg-danger-bg {
+    background-color: var(--color-danger-bg);
   }
 }

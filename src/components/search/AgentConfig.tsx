@@ -6,57 +6,32 @@ const MODEL_OPTIONS = [
   { value: "claude-3.5-sonnet", label: "Claude 3.5 Sonnet" },
   { value: "claude-3.5-haiku", label: "Claude 3.5 Haiku" },
   { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+  { value: "deepseek-v4", label: "DeepSeek V4" },
 ];
 
 interface AgentConfigProps {
-  apiKey: string;
   model: string;
-  onApiKeyChange: (key: string) => void;
   onModelChange: (model: string) => void;
-  errors?: { apiKey?: string; model?: string };
+  errors?: { model?: string };
 }
 
 export function AgentConfig({
-  apiKey,
   model,
-  onApiKeyChange,
   onModelChange,
   errors,
 }: AgentConfigProps) {
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">AI Agent Configuration</h3>
-
-      <div>
-        <label
-          htmlFor="apiKey"
-          className="mb-1 block text-sm font-medium text-[var(--color-fg)]"
-        >
-          API Key <span className="text-red-400">*</span>
-        </label>
-        <input
-          id="apiKey"
-          type="password"
-          value={apiKey}
-          onChange={(e) => onApiKeyChange(e.target.value)}
-          className={`w-full rounded-[10px] border bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] ${
-            errors?.apiKey
-              ? "border-red-400"
-              : "border-[var(--color-border)]"
-          }`}
-          placeholder="Enter your AI provider API key"
-        />
-        {errors?.apiKey && (
-          <p className="mt-1 text-xs text-red-400">{errors.apiKey}</p>
-        )}
-      </div>
+      <h3 className="text-lg font-semibold text-[var(--color-fg)]">
+        AI Model
+      </h3>
 
       <div>
         <label
           htmlFor="model"
-          className="mb-1 block text-sm font-medium text-[var(--color-fg)]"
+          className="mb-1.5 block text-sm font-medium text-[var(--color-fg)]"
         >
-          AI Model <span className="text-red-400">*</span>
+          Model <span className="text-[var(--color-danger)]">*</span>
         </label>
         <select
           id="model"
@@ -64,7 +39,7 @@ export function AgentConfig({
           onChange={(e) => onModelChange(e.target.value)}
           className={`w-full rounded-[10px] border bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-fg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] ${
             errors?.model
-              ? "border-red-400"
+              ? "border-[var(--color-danger)]"
               : "border-[var(--color-border)]"
           }`}
         >
@@ -76,7 +51,9 @@ export function AgentConfig({
           ))}
         </select>
         {errors?.model && (
-          <p className="mt-1 text-xs text-red-400">{errors.model}</p>
+          <p className="mt-1 text-xs text-[var(--color-danger)]">
+            {errors.model}
+          </p>
         )}
       </div>
     </div>

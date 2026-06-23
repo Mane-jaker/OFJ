@@ -11,7 +11,9 @@ export const searches = sqliteTable("searches", {
     .default("pending")
     .$type<"pending" | "running" | "completed" | "failed">(),
   platforms: text("platforms", { mode: "json" }).$type<string[]>().default([]),
-  apiKey: text("api_key"),
+  searchTerms: text("search_terms", { mode: "json" })
+    .$type<string[]>()
+    .default([]),
   model: text("model"),
   filters: text("filters", { mode: "json" })
     .$type<Record<string, unknown>>()

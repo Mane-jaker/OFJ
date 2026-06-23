@@ -1,11 +1,53 @@
+# Dependencies
 node_modules/
+.pnp
+.pnp.js
+
+# Build
 .next/
-*.tsbuildinfo
+dist/
+build/
+out/
+
+# Database
 *.db
-.env
-.env.local
-tmp/
-.atl/
 *.db-shm
 *.db-wal
+src/server/db/data.db
+src/server/db/data.db-shm
+src/server/db/data.db-wal
+
+# OFJ cache
+~/.ofj/
+
+# Env files
+.env
+.env.local
+.env.*.local
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Misc
+tmp/
 docs/
+.atl/

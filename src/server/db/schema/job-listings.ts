@@ -13,9 +13,10 @@ export const jobListings = sqliteTable("job_listings", {
   url: text("url"),
   location: text("location"),
   salaryRange: text("salary_range"),
-  matchScore: real("match_score"),
-  applied: integer("applied").default(0),
-  saved: integer("saved").default(0),
+  postedDate: text("posted_date"),
+  relevanceScore: real("relevance_score"),
+  isFavorite: integer("is_favorite").default(0),
+  isViewed: integer("is_viewed").default(0),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
     .$default(() => new Date()),

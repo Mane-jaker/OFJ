@@ -6,19 +6,28 @@ import {
   getSearchById,
   getJobListings,
   updateSearchStatus,
+  executeSearch,
 } from "./service";
 
 export async function startSearch(data: {
   platforms: string[];
-  apiKey: string;
-  model: string;
+  searchTerms?: string[];
+  model?: string;
+  maxResults?: number;
 }): Promise<{ searchId: string; error?: string }> {
   try {
     const result = await createSearchService({
       platforms: data.platforms,
-      apiKey: data.apiKey,
+      searchTerms: data.searchTerms,
       model: data.model,
+      filters: data.maxResults ? { maxResults: data.maxResults } : undefined,
     });
+
+    const run = await executeSearch(result.id, data.maxResults);
+    if (!run.success) {
+      return { searchId: result.id, error: run.error };
+    }
+
     return { searchId: result.id };
   } catch (error) {
     const message =
@@ -37,7 +46,11 @@ export async function getSearchStatus(searchId: string): Promise<{
     if (!result) {
       return { status: "not_found", resultsCount: 0 };
     }
-    return { status: result.status, resultsCount: result.resultsCount ?? 0 };
+    return {
+      status: result.status,
+      resultsCount: result.resultsCount ?? 0,
+      error: result.errorMessage,
+    };
   } catch (error) {
     return {
       status: "error",
@@ -63,14 +76,14 @@ export async function getSearchWithResults(searchId: string) {
   }
 }
 
-export async function markJobApplied(jobId: string): Promise<{ success: boolean }> {
+export async function markJobViewed(jobId: string): Promise<{ success: boolean }> {
   try {
     const db = (await import("@/server/db")).getDb();
     const { jobListings } = await import("@/server/db/schema");
     const { eq } = await import("drizzle-orm");
 
     db.update(jobListings)
-      .set({ applied: 1 })
+      .set({ isViewed: 1 })
       .where(eq(jobListings.id, jobId));
 
     return { success: true };
@@ -79,26 +92,26 @@ export async function markJobApplied(jobId: string): Promise<{ success: boolean 
   }
 }
 
-export async function toggleJobSaved(jobId: string): Promise<{ success: boolean; saved: boolean }> {
+export async function toggleJobFavorite(jobId: string): Promise<{ success: boolean; isFavorite: boolean }> {
   try {
     const db = (await import("@/server/db")).getDb();
     const { jobListings } = await import("@/server/db/schema");
     const { eq } = await import("drizzle-orm");
 
     const current = db
-      .select({ saved: jobListings.saved })
+      .select({ isFavorite: jobListings.isFavorite })
       .from(jobListings)
       .where(eq(jobListings.id, jobId))
       .get();
 
-    const newSaved = current?.saved ? 0 : 1;
+    const newFavorite = current?.isFavorite ? 0 : 1;
 
     db.update(jobListings)
-      .set({ saved: newSaved })
+      .set({ isFavorite: newFavorite })
       .where(eq(jobListings.id, jobId));
 
-    return { success: true, saved: !!newSaved };
+    return { success: true, isFavorite: !!newFavorite };
   } catch {
-    return { success: false, saved: false };
+    return { success: false, isFavorite: false };
   }
 }

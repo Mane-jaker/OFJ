@@ -16,8 +16,8 @@ export function FilterChips({
   if (platforms.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <span className="text-sm text-[var(--color-muted)]">Filter:</span>
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-sm text-[var(--color-muted)]">Filtrar:</span>
 
       {platforms.map((platform) => {
         const isActive = activePlatforms.includes(platform);
@@ -27,12 +27,7 @@ export function FilterChips({
             key={platform}
             type="button"
             onClick={() => onToggle(platform)}
-            className={cn(
-              "rounded-[10px] border px-3 py-1.5 text-xs font-medium transition-all capitalize",
-              isActive
-                ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
-                : "border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-fg)]",
-            )}
+            className={cn("chip capitalize", isActive && "chip-active")}
           >
             {platform}
           </button>

@@ -4,32 +4,15 @@ import userEvent from "@testing-library/user-event";
 import { AgentConfig } from "./AgentConfig";
 
 describe("AgentConfig", () => {
-  it("renders API key input and model selector", () => {
+  it("renders model selector", () => {
     render(
       <AgentConfig
-        apiKey=""
         model=""
-        onApiKeyChange={vi.fn()}
         onModelChange={vi.fn()}
       />,
     );
 
-    expect(screen.getByLabelText(/API Key/i)).toBeDefined();
-    expect(screen.getByLabelText(/AI Model/i)).toBeDefined();
-  });
-
-  it("masks API key input (type=password)", () => {
-    render(
-      <AgentConfig
-        apiKey="sk-test-key"
-        model=""
-        onApiKeyChange={vi.fn()}
-        onModelChange={vi.fn()}
-      />,
-    );
-
-    const input = screen.getByLabelText(/API Key/i) as HTMLInputElement;
-    expect(input.type).toBe("password");
+    expect(screen.getByLabelText(/Model/i)).toBeDefined();
   });
 
   it("calls onModelChange when model is selected", async () => {
@@ -38,31 +21,26 @@ describe("AgentConfig", () => {
 
     render(
       <AgentConfig
-        apiKey=""
         model=""
-        onApiKeyChange={vi.fn()}
         onModelChange={handleModelChange}
       />,
     );
 
-    const select = screen.getByLabelText(/AI Model/i);
+    const select = screen.getByLabelText(/Model/i);
     await user.selectOptions(select, "gpt-4");
 
     expect(handleModelChange).toHaveBeenCalledWith("gpt-4");
   });
 
-  it("displays required field errors", () => {
+  it("displays required field error for model", () => {
     render(
       <AgentConfig
-        apiKey=""
         model=""
-        onApiKeyChange={vi.fn()}
         onModelChange={vi.fn()}
-        errors={{ apiKey: "API key is required", model: "Select an AI model" }}
+        errors={{ model: "Select an AI model" }}
       />,
     );
 
-    expect(screen.getByText("API key is required")).toBeDefined();
     expect(screen.getByText("Select an AI model")).toBeDefined();
   });
 });

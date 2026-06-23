@@ -43,9 +43,9 @@ describe("FilterChips", () => {
       />,
     );
 
-    // Active chip should have accent color classes
+    // Active chip should use the chip-active design-system class
     const activeChip = screen.getByText("linkedin");
-    expect(activeChip.className).toContain("accent");
+    expect(activeChip.className).toContain("chip-active");
   });
 
   it("returns null when no platforms", () => {

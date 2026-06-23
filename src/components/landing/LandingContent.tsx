@@ -39,10 +39,12 @@ export function LandingContent() {
 
   return (
     <Container variant="landing" className="flex flex-col items-center py-20">
-      <h1 className="max-w-2xl text-center text-2xl font-medium leading-relaxed text-[var(--color-fg)] sm:text-3xl">
-        Buscá los empleos que mejor se acoplen a tu perfil y los más actuales a
-        día de hoy donde aún tenés oportunidad de postularte y no quedar fuera
+      <h1 className="max-w-2xl text-center text-3xl font-semibold leading-tight text-[var(--color-fg)] sm:text-4xl">
+        Subí tu CV y encontrá trabajo con IA
       </h1>
+      <p className="mt-4 max-w-xl text-center text-base text-[var(--color-muted)]">
+        Open-source, local, privado. Tu agente de búsqueda laboral.
+      </p>
 
       <div className="mt-12 w-full max-w-lg">
         <UploadZone
