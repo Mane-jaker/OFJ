@@ -204,6 +204,7 @@ export async function executeSearch(
 
   const profileSkills = (profile.skills ?? []) as string[];
   const profileExperience = (profile.experience ?? []) as Experience[];
+  const profileRoles = (profile.roles ?? []) as string[];
 
   const searchFilters = (search.filters ?? {}) as Record<string, unknown>;
   const requestedMax =
@@ -212,6 +213,11 @@ export async function executeSearch(
       ? searchFilters.maxResults
       : null) ??
     20;
+
+  const allSearchTerms = [
+    ...profileRoles.filter((r) => r.trim()),
+    ...((search.searchTerms ?? []) as string[]).filter((t) => t.trim()),
+  ];
 
   const agentInput = {
     profile: {
@@ -231,7 +237,7 @@ export async function executeSearch(
         location: profile.location ?? null,
       },
     },
-    searchTerms: (search.searchTerms as string[]) ?? [],
+    searchTerms: allSearchTerms,
     maxResults: requestedMax,
   };
 

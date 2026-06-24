@@ -31,6 +31,8 @@ export const profiles = sqliteTable("profiles", {
   education: text("education", { mode: "json" })
     .$type<Education[]>()
     .default([]),
+  roles: text("roles", { mode: "json" }).$type<string[]>().default([]),
+  salaryExpectation: text("salary_expectation"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
     .$default(() => new Date()),

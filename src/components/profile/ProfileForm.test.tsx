@@ -52,6 +52,8 @@ describe("ProfileForm", () => {
       email: "john@example.com",
       title: "",
       location: "",
+      roles: [],
+      salaryExpectation: "",
     });
   });
 

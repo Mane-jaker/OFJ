@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { Container } from "@/components/layout/Container";
 import { UploadZone } from "@/components/landing/UploadZone";
 import { uploadCv } from "@/server/profile/actions";
+import { useAgentGate } from "@/components/layout/AgentGateContext";
 
 export function LandingContent() {
   const router = useRouter();
+  const { requireAgent } = useAgentGate();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,26 +17,28 @@ export function LandingContent() {
   async function handleContinue() {
     if (!selectedFile) return;
 
-    setIsProcessing(true);
-    setError(null);
+    requireAgent(async () => {
+      setIsProcessing(true);
+      setError(null);
 
-    const fd = new FormData();
-    fd.append("file", selectedFile);
+      const fd = new FormData();
+      fd.append("file", selectedFile);
 
-    try {
-      const result = await uploadCv(fd);
-      if (result?.error) {
-        setError(result.error);
+      try {
+        const result = await uploadCv(fd);
+        if (result?.error) {
+          setError(result.error);
+          setIsProcessing(false);
+          return;
+        }
+        router.push("/home");
+      } catch {
+        setError(
+          "No se pudo leer el CV. Intentá con otro archivo o completá manualmente",
+        );
         setIsProcessing(false);
-        return;
       }
-      router.push("/home");
-    } catch {
-      setError(
-        "No se pudo leer el CV. Intentá con otro archivo o completá manualmente",
-      );
-      setIsProcessing(false);
-    }
+    }, "procesar tu CV y extraer los datos con el agent");
   }
 
   return (

@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
+import { runMigrations } from "./migrations";
 
 let db: ReturnType<typeof drizzle<typeof schema>>;
 let tablesCreated = false;
@@ -88,6 +89,8 @@ export function createTables() {
       created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
     );
   `);
+
+  runMigrations();
 }
 
 export { schema };

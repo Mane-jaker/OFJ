@@ -69,5 +69,42 @@ describe("Profile Service", () => {
     expect(profile?.skills).toEqual([]);
     expect(profile?.experience).toEqual([]);
     expect(profile?.education).toEqual([]);
+    expect(profile?.roles).toEqual([]);
+    expect(profile?.salaryExpectation).toBeNull();
+  });
+
+  it("createProfile stores roles and salaryExpectation", async () => {
+    const result = await createProfile({
+      name: "Jane Doe",
+      email: "jane.roles@example.com",
+      roles: ["Senior Java Developer", "DevOps Engineer", "Backend Engineer"],
+      salaryExpectation: "USD 120k-150k",
+    });
+
+    const profile = await getProfile(result.id);
+    expect(profile?.roles).toEqual([
+      "Senior Java Developer",
+      "DevOps Engineer",
+      "Backend Engineer",
+    ]);
+    expect(profile?.salaryExpectation).toBe("USD 120k-150k");
+  });
+
+  it("updateProfile stores roles explicitly", async () => {
+    const { id } = await createProfile({
+      name: "Role Test",
+      email: "roles.update@example.com",
+    });
+
+    await updateProfile(id, {
+      name: "Role Test Updated",
+      email: "roles.update@example.com",
+      roles: ["Senior Engineer"],
+      salaryExpectation: "USD 150k",
+    });
+
+    const profile = await getProfile(id);
+    expect(profile?.roles).toEqual(["Senior Engineer"]);
+    expect(profile?.salaryExpectation).toBe("USD 150k");
   });
 });

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Container } from "@/components/layout/Container";
+import { useAgent } from "@/components/layout/AgentContext";
+import { useAgentGate } from "@/components/layout/AgentGateContext";
 import { ProfileForm, type ProfileFormState } from "@/components/profile/ProfileForm";
 import { ExperienceSection } from "@/components/profile/ExperienceSection";
 import { SkillsSection } from "@/components/profile/SkillsSection";
@@ -15,7 +17,9 @@ import {
   type SearchHistoryItem,
   type FavoriteJob,
 } from "@/components/dashboard/HistoryTabs";
+import { DashboardTabs, type Tab } from "@/components/dashboard/DashboardTabs";
 import { updateProfile } from "@/server/profile/actions";
+import { updateCvFromFile } from "@/server/profile/actions";
 import { startSearch } from "@/server/agent/actions";
 import { SearchProgress } from "@/components/search/SearchProgress";
 import type { Experience, Education } from "@/server/db/schema";
@@ -29,6 +33,8 @@ interface ProfileData {
   skills?: string[];
   experience?: Experience[];
   education?: Education[];
+  roles?: string[];
+  salaryExpectation?: string | null;
 }
 
 interface DashboardContentProps {
@@ -39,6 +45,7 @@ interface DashboardContentProps {
 }
 
 const RESULT_OPTIONS = [10, 20, 50];
+type TabId = "search" | "profile" | "history";
 
 export function DashboardContent({
   profile,
@@ -47,6 +54,9 @@ export function DashboardContent({
   favoriteJobs,
 }: DashboardContentProps) {
   const router = useRouter();
+  const { model: globalModel, models, selectModel } = useAgent();
+  const { requireAgent } = useAgentGate();
+  const [activeTab, setActiveTab] = useState<TabId>("search");
   const [model, setModel] = useState("");
   const [resultsCount, setResultsCount] = useState<number>(20);
   const [searchTerms, setSearchTerms] = useState<string[]>([]);
@@ -56,8 +66,26 @@ export function DashboardContent({
   const [isSearching, setIsSearching] = useState(false);
   const [currentSearchId, setCurrentSearchId] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const cvFileInputRef = useRef<HTMLInputElement>(null);
+  const profileFormRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (globalModel) {
+      setModel(`${globalModel.providerID}/${globalModel.modelID}`);
+    }
+  }, [globalModel]);
+
+  function handleModelChange(value: string) {
+    setModel(value);
+    if (value) {
+      const [pid, mid] = value.split("/");
+      selectModel(pid, mid);
+    }
+  }
 
   // Editable profile state (kept separate from read-only prop)
+  const [draftRoles, setDraftRoles] = useState<string[]>(profile.roles ?? []);
+  const [draftSalary, setDraftSalary] = useState(profile.salaryExpectation ?? "");
   const [draftSkills, setDraftSkills] = useState<string[]>(profile.skills ?? []);
   const [draftExperience, setDraftExperience] = useState<Experience[]>(
     profile.experience ?? [],
@@ -66,7 +94,36 @@ export function DashboardContent({
     profile.education ?? [],
   );
 
+  const hasUnsavedChanges =
+    isEditing && (
+      JSON.stringify(draftRoles) !== JSON.stringify(profile.roles ?? []) ||
+      draftSalary !== (profile.salaryExpectation ?? "") ||
+      JSON.stringify(draftSkills) !== JSON.stringify(profile.skills ?? []) ||
+      JSON.stringify(draftExperience) !== JSON.stringify(profile.experience ?? []) ||
+      JSON.stringify(draftEducation) !== JSON.stringify(profile.education ?? [])
+    );
+
+  const historyCount = viewedJobs.length + searches.length + favoriteJobs.length;
+
+  const tabs: Tab[] = [
+    { id: "search", label: "Buscar" },
+    {
+      id: "profile",
+      label: "Perfil",
+      badge: hasUnsavedChanges ? (
+        <span className="inline-block h-2 w-2 rounded-full bg-[var(--color-warning)]" aria-label="Cambios sin guardar" />
+      ) : undefined,
+    },
+    {
+      id: "history",
+      label: "Historial",
+      badge: historyCount > 0 ? historyCount : undefined,
+    },
+  ];
+
   function handleEdit() {
+    setDraftRoles(profile.roles ?? []);
+    setDraftSalary(profile.salaryExpectation ?? "");
     setDraftSkills(profile.skills ?? []);
     setDraftExperience(profile.experience ?? []);
     setDraftEducation(profile.education ?? []);
@@ -84,28 +141,31 @@ export function DashboardContent({
       setSearchError("Agregá al menos un término de búsqueda.");
       return;
     }
-    setSearchError(null);
-    setIsSearching(true);
-    try {
-      const platform = ["linkedin"];
-      const result = await startSearch({
-        platforms: platform,
-        searchTerms,
-        model: model || undefined,
-        maxResults: resultsCount,
-      });
-      if (!result.searchId) {
+
+    requireAgent(async () => {
+      setSearchError(null);
+      setIsSearching(true);
+      try {
+        const platform = ["linkedin"];
+        const result = await startSearch({
+          platforms: platform,
+          searchTerms,
+          model: model || undefined,
+          maxResults: resultsCount,
+        });
+        if (!result.searchId) {
+          setIsSearching(false);
+          setSearchError(result.error ?? "No se pudo iniciar la búsqueda.");
+          return;
+        }
+        setCurrentSearchId(result.searchId);
+      } catch (err) {
         setIsSearching(false);
-        setSearchError(result.error ?? "No se pudo iniciar la búsqueda.");
-        return;
+        setSearchError(
+          err instanceof Error ? err.message : "No se pudo iniciar la búsqueda.",
+        );
       }
-      setCurrentSearchId(result.searchId);
-    } catch (err) {
-      setIsSearching(false);
-      setSearchError(
-        err instanceof Error ? err.message : "No se pudo iniciar la búsqueda.",
-      );
-    }
+    }, "realizar búsquedas en LinkedIn con el agent");
   }
 
   function handleSearchComplete() {
@@ -122,6 +182,35 @@ export function DashboardContent({
     setCurrentSearchId(null);
   }
 
+  async function handleCvFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    requireAgent(async () => {
+      setIsSaving(true);
+      setSaveError(null);
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        const result = await updateCvFromFile(profile.id, fd);
+        if (result.success) {
+          setIsEditing(false);
+          router.refresh();
+        } else {
+          setSaveError(result.error ?? "No se pudo actualizar el CV");
+        }
+      } catch {
+        setSaveError("No se pudo actualizar el CV");
+      } finally {
+        setIsSaving(false);
+      }
+    }, "re-procesar tu CV con el agent");
+
+    if (cvFileInputRef.current) {
+      cvFileInputRef.current.value = "";
+    }
+  }
+
   async function handleSave(data: ProfileFormState) {
     setIsSaving(true);
     setSaveError(null);
@@ -134,9 +223,12 @@ export function DashboardContent({
         skills: draftSkills,
         experience: draftExperience,
         education: draftEducation,
+        roles: data.roles ?? [],
+        salaryExpectation: data.salaryExpectation || null,
       });
       if (result.success) {
         setIsEditing(false);
+        router.refresh();
       } else {
         setSaveError(result.error ?? "No se pudo guardar el perfil");
       }
@@ -153,174 +245,203 @@ export function DashboardContent({
         Hola, {profile.name || "👋"}
       </h1>
 
-      <div className="mt-8 space-y-6">
-        {/* Section 1 — Search Configuration */}
-        <section id="search" className="card space-y-6">
-          <h2 className="text-lg font-semibold text-[var(--color-fg)]">
-            Buscar empleos
-          </h2>
-
-          <div className="space-y-2">
-            <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
-              Plataforma
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <span className="chip chip-active">LinkedIn</span>
-            </div>
-          </div>
-
-          <AgentConfig model={model} onModelChange={setModel} />
-
-          <div className="space-y-2">
-            <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
-              Cantidad de resultados
-            </span>
-            <div className="flex gap-2">
-              {RESULT_OPTIONS.map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setResultsCount(opt)}
-                  className={`chip ${resultsCount === opt ? "chip-active" : ""}`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
-              Términos de búsqueda
-            </span>
-            <SearchChips terms={searchTerms} onChange={setSearchTerms} />
-          </div>
-
-          {searchError && (
-            <p
-              className="text-sm text-[var(--color-danger)]"
-              role="alert"
-            >
-              {searchError}
-            </p>
-          )}
-
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={handleSearch}
-              disabled={isSearching}
-              className="btn-primary disabled:opacity-60"
-            >
-              {isSearching ? "Buscando…" : "Buscar"}
-            </button>
-          </div>
-        </section>
-
-        {/* Section 2 — Profile */}
-        <section className="card space-y-6">
-          <div className="flex items-center justify-between">
+      <DashboardTabs tabs={tabs} active={activeTab} onChange={(id) => setActiveTab(id as TabId)}>
+        {/* Tab: Search */}
+        <div
+          hidden={activeTab !== "search"}
+          role="tabpanel"
+          id="panel-search"
+          aria-labelledby="tab-search"
+        >
+          <section className="mt-6 card space-y-6">
             <h2 className="text-lg font-semibold text-[var(--color-fg)]">
-              Tu perfil
+              Buscar empleos
             </h2>
-            <div className="flex gap-2">
-              <button type="button" className="btn-secondary">
-                Actualizar CV
-              </button>
-              {!isEditing ? (
-                <button type="button" className="btn-primary" onClick={handleEdit}>
-                  Editar
-                </button>
-              ) : null}
+
+            <div className="space-y-2">
+              <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+                Plataforma
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <span className="chip chip-active">LinkedIn</span>
+              </div>
             </div>
-          </div>
 
-          {saveError && (
-            <p className="text-sm text-[var(--color-danger)]" role="alert">
-              {saveError}
-            </p>
-          )}
+            <AgentConfig model={model} onModelChange={handleModelChange} />
 
-          {isEditing ? (
-            <div className="space-y-8">
-              <ProfileForm
-                initialData={{
-                  name: profile.name,
-                  email: profile.email,
-                  title: profile.title ?? "",
-                  location: profile.location ?? "",
-                }}
-                onSave={handleSave}
-                isSaving={isSaving}
-              />
-              <SkillsSection
-                skills={draftSkills}
-                onChange={setDraftSkills}
-              />
-              <ExperienceSection
-                experiences={draftExperience}
-                onChange={setDraftExperience}
-              />
-              <EducationSection
-                educations={draftEducation}
-                onChange={setDraftEducation}
-              />
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={() =>
-                    handleSave({
-                      name: profile.name,
-                      email: profile.email,
-                      title: profile.title ?? "",
-                      location: profile.location ?? "",
-                    })
-                  }
-                  disabled={isSaving}
-                >
-                  {isSaving ? "Guardando…" : "Guardar"}
-                </button>
+            <div className="space-y-2">
+              <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+                Cantidad de resultados
+              </span>
+              <div className="flex gap-2">
+                {RESULT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setResultsCount(opt)}
+                    className={`chip ${resultsCount === opt ? "chip-active" : ""}`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+                Términos de búsqueda
+              </span>
+              <SearchChips terms={searchTerms} onChange={setSearchTerms} />
+            </div>
+
+            {searchError && (
+              <p className="text-sm text-[var(--color-danger)]" role="alert">
+                {searchError}
+              </p>
+            )}
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleSearch}
+                disabled={isSearching}
+                className="btn-primary disabled:opacity-60"
+              >
+                {isSearching ? "Buscando…" : "Buscar"}
+              </button>
+            </div>
+          </section>
+        </div>
+
+        {/* Tab: Profile */}
+        <div
+          hidden={activeTab !== "profile"}
+          role="tabpanel"
+          id="panel-profile"
+          aria-labelledby="tab-profile"
+        >
+          <section className="mt-6 card space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-[var(--color-fg)]">
+                Tu perfil
+              </h2>
+              <div className="flex gap-2">
+                <input
+                  ref={cvFileInputRef}
+                  type="file"
+                  accept=".pdf,.txt,application/pdf,text/plain"
+                  onChange={handleCvFileSelected}
+                  className="hidden"
+                  data-testid="cv-file-input"
+                />
                 <button
                   type="button"
                   className="btn-secondary"
-                  onClick={handleCancel}
+                  onClick={() => cvFileInputRef.current?.click()}
                   disabled={isSaving}
                 >
-                  Cancelar
+                  Actualizar CV
                 </button>
+                {!isEditing ? (
+                  <button type="button" className="btn-primary" onClick={handleEdit}>
+                    Editar
+                  </button>
+                ) : null}
               </div>
             </div>
-          ) : (
-            <div className="space-y-8">
-              <ProfileForm
-                initialData={{
-                  name: profile.name,
-                  email: profile.email,
-                  title: profile.title ?? "",
-                  location: profile.location ?? "",
-                }}
-                readOnly
-              />
-              <SkillsSection skills={profile.skills ?? []} readOnly />
-              <ExperienceSection experiences={profile.experience ?? []} readOnly />
-              <EducationSection educations={profile.education ?? []} readOnly />
-            </div>
-          )}
-        </section>
 
-        {/* Section 3 — History tabs */}
-        <section className="card space-y-4">
-          <h2 className="text-lg font-semibold text-[var(--color-fg)]">
-            Historial
-          </h2>
-          <HistoryTabs
-            viewedJobs={viewedJobs}
-            searches={searches}
-            favoriteJobs={favoriteJobs}
-          />
-        </section>
-      </div>
+            {saveError && (
+              <p className="text-sm text-[var(--color-danger)]" role="alert">
+                {saveError}
+              </p>
+            )}
+
+            {isEditing ? (
+              <div className="space-y-8">
+                <ProfileForm
+                  formRef={profileFormRef}
+                  initialData={{
+                    name: profile.name,
+                    email: profile.email,
+                    title: profile.title ?? "",
+                    location: profile.location ?? "",
+                    roles: draftRoles,
+                    salaryExpectation: draftSalary,
+                  }}
+                  onSave={handleSave}
+                  isSaving={isSaving}
+                />
+                <SkillsSection
+                  skills={draftSkills}
+                  onChange={setDraftSkills}
+                />
+                <ExperienceSection
+                  experiences={draftExperience}
+                  onChange={setDraftExperience}
+                />
+                <EducationSection
+                  educations={draftEducation}
+                  onChange={setDraftEducation}
+                />
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => profileFormRef.current?.requestSubmit()}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? "Guardando…" : "Guardar"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={handleCancel}
+                    disabled={isSaving}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                <ProfileForm
+                  initialData={{
+                    name: profile.name,
+                    email: profile.email,
+                    title: profile.title ?? "",
+                    location: profile.location ?? "",
+                    roles: profile.roles,
+                    salaryExpectation: profile.salaryExpectation ?? "",
+                  }}
+                  readOnly
+                />
+                <SkillsSection skills={profile.skills ?? []} readOnly />
+                <ExperienceSection experiences={profile.experience ?? []} readOnly />
+                <EducationSection educations={profile.education ?? []} readOnly />
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* Tab: History */}
+        <div
+          hidden={activeTab !== "history"}
+          role="tabpanel"
+          id="panel-history"
+          aria-labelledby="tab-history"
+        >
+          <section className="mt-6 card space-y-4">
+            <h2 className="text-lg font-semibold text-[var(--color-fg)]">
+              Historial
+            </h2>
+            <HistoryTabs
+              viewedJobs={viewedJobs}
+              searches={searches}
+              favoriteJobs={favoriteJobs}
+            />
+          </section>
+        </div>
+      </DashboardTabs>
 
       {isSearching && currentSearchId && (
         <SearchProgress

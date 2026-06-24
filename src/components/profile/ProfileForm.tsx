@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { RolesSection } from "./RolesSection";
 
 export interface ProfileFormState {
   name: string;
   email: string;
   title: string;
   location: string;
+  roles: string[];
+  salaryExpectation: string;
 }
 
 interface ProfileFormProps {
@@ -14,6 +17,7 @@ interface ProfileFormProps {
   onSave?: (data: ProfileFormState) => Promise<void>;
   isSaving?: boolean;
   readOnly?: boolean;
+  formRef?: { current: HTMLFormElement | null };
 }
 
 function validateEmail(email: string): boolean {
@@ -25,12 +29,15 @@ export function ProfileForm({
   onSave,
   isSaving: externalSaving,
   readOnly = false,
+  formRef,
 }: ProfileFormProps) {
   const [form, setForm] = useState<ProfileFormState>({
     name: initialData?.name ?? "",
     email: initialData?.email ?? "",
     title: initialData?.title ?? "",
     location: initialData?.location ?? "",
+    roles: initialData?.roles ?? [],
+    salaryExpectation: initialData?.salaryExpectation ?? "",
   });
 
   const [errors, setErrors] = useState<
@@ -73,12 +80,15 @@ export function ProfileForm({
     }
   }
 
-  function updateField(field: keyof ProfileFormState, value: string) {
+  function updateField(
+    field: keyof ProfileFormState,
+    value: string | string[],
+  ) {
     setForm((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
+    if (errors[field as keyof typeof errors]) {
       setErrors((prev) => {
         const next = { ...prev };
-        delete next[field];
+        delete next[field as keyof typeof next];
         return next;
       });
     }
@@ -87,125 +97,162 @@ export function ProfileForm({
   if (readOnly) {
     return (
       <div className="space-y-5">
-        <div>
-          <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
-            Nombre
-          </span>
-          <p className="mt-1 text-base text-[var(--color-fg)]">
-            {form.name || "—"}
-          </p>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+              Nombre
+            </span>
+            <p className="mt-1 text-base text-[var(--color-fg)]">
+              {initialData?.name || "—"}
+            </p>
+          </div>
+          <div>
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+              Email
+            </span>
+            <p className="mt-1 text-base text-[var(--color-fg)]">
+              {initialData?.email || "—"}
+            </p>
+          </div>
+          <div>
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+              Título profesional
+            </span>
+            <p className="mt-1 text-base text-[var(--color-fg)]">
+              {initialData?.title || "—"}
+            </p>
+          </div>
+          <div>
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+              Ubicación
+            </span>
+            <p className="mt-1 text-base text-[var(--color-fg)]">
+              {initialData?.location || "—"}
+            </p>
+          </div>
+          <div>
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+              Expectativa salarial
+            </span>
+            <p className="mt-1 text-base text-[var(--color-fg)]">
+              {initialData?.salaryExpectation || "—"}
+            </p>
+          </div>
         </div>
-        <div>
-          <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
-            Email
-          </span>
-          <p className="mt-1 text-base text-[var(--color-fg)]">
-            {form.email || "—"}
-          </p>
-        </div>
-        <div>
-          <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
-            Título profesional
-          </span>
-          <p className="mt-1 text-base text-[var(--color-fg)]">
-            {form.title || "—"}
-          </p>
-        </div>
-        <div>
-          <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
-            Ubicación
-          </span>
-          <p className="mt-1 text-base text-[var(--color-fg)]">
-            {form.location || "—"}
-          </p>
-        </div>
+        <RolesSection roles={initialData?.roles ?? []} readOnly />
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-6">
-      <div>
-        <label
-          htmlFor="name"
-          className="mb-1 block text-sm font-medium text-[var(--color-fg)]"
-        >
-          Name <span className="text-red-400">*</span>
-        </label>
-        <input
-          id="name"
-          type="text"
-          value={form.name}
-          onChange={(e) => updateField("name", e.target.value)}
-          className={`w-full rounded-[10px] border bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] ${
-            errors.name
-              ? "border-red-400"
-              : "border-[var(--color-border)]"
-          }`}
-          placeholder="John Doe"
-        />
-        {errors.name && (
-          <p className="mt-1 text-xs text-red-400">{errors.name}</p>
-        )}
+    <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-6">
+      <div className="grid gap-6 sm:grid-cols-2">
+        <div>
+          <label
+            htmlFor="name"
+            className="mb-1 block text-sm font-medium text-[var(--color-fg)]"
+          >
+            Name <span className="text-red-400">*</span>
+          </label>
+          <input
+            id="name"
+            type="text"
+            value={form.name}
+            onChange={(e) => updateField("name", e.target.value)}
+            className={`w-full rounded-[10px] border bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] ${
+              errors.name
+                ? "border-red-400"
+                : "border-[var(--color-border)]"
+            }`}
+            placeholder="John Doe"
+          />
+          {errors.name && (
+            <p className="mt-1 text-xs text-red-400">{errors.name}</p>
+          )}
+        </div>
+
+        <div>
+          <label
+            htmlFor="email"
+            className="mb-1 block text-sm font-medium text-[var(--color-fg)]"
+          >
+            Email <span className="text-red-400">*</span>
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={form.email}
+            onChange={(e) => updateField("email", e.target.value)}
+            className={`w-full rounded-[10px] border bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] ${
+              errors.email
+                ? "border-red-400"
+                : "border-[var(--color-border)]"
+            }`}
+            placeholder="john@example.com"
+          />
+          {errors.email && (
+            <p className="mt-1 text-xs text-red-400">{errors.email}</p>
+          )}
+        </div>
+
+        <div>
+          <label
+            htmlFor="title"
+            className="mb-1 block text-sm font-medium text-[var(--color-fg)]"
+          >
+            Professional Title
+          </label>
+          <input
+            id="title"
+            type="text"
+            value={form.title}
+            onChange={(e) => updateField("title", e.target.value)}
+            className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            placeholder="Senior Software Engineer"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="location"
+            className="mb-1 block text-sm font-medium text-[var(--color-fg)]"
+          >
+            Location
+          </label>
+          <input
+            id="location"
+            type="text"
+            value={form.location}
+            onChange={(e) => updateField("location", e.target.value)}
+            className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            placeholder="San Francisco, CA"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="salaryExpectation"
+            className="mb-1 block text-sm font-medium text-[var(--color-fg)]"
+          >
+            Salary Expectation
+          </label>
+          <input
+            id="salaryExpectation"
+            type="text"
+            value={form.salaryExpectation}
+            onChange={(e) =>
+              updateField("salaryExpectation", e.target.value)
+            }
+            className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            placeholder="USD 80k-120k"
+          />
+        </div>
       </div>
 
-      <div>
-        <label
-          htmlFor="email"
-          className="mb-1 block text-sm font-medium text-[var(--color-fg)]"
-        >
-          Email <span className="text-red-400">*</span>
-        </label>
-        <input
-          id="email"
-          type="email"
-          value={form.email}
-          onChange={(e) => updateField("email", e.target.value)}
-          className={`w-full rounded-[10px] border bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] ${
-            errors.email
-              ? "border-red-400"
-              : "border-[var(--color-border)]"
-          }`}
-          placeholder="john@example.com"
-        />
-        {errors.email && (
-          <p className="mt-1 text-xs text-red-400">{errors.email}</p>
-        )}
-      </div>
-
-      <div>
-        <label
-          htmlFor="title"
-          className="mb-1 block text-sm font-medium text-[var(--color-fg)]"
-        >
-          Professional Title
-        </label>
-        <input
-          id="title"
-          type="text"
-          value={form.title}
-          onChange={(e) => updateField("title", e.target.value)}
-          className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-          placeholder="Senior Software Engineer"
-        />
-      </div>
-
-      <div>
-        <label
-          htmlFor="location"
-          className="mb-1 block text-sm font-medium text-[var(--color-fg)]"
-        >
-          Location
-        </label>
-        <input
-          id="location"
-          type="text"
-          value={form.location}
-          onChange={(e) => updateField("location", e.target.value)}
-          className="w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-          placeholder="San Francisco, CA"
-        />
-      </div>
+      <RolesSection
+        roles={form.roles}
+        onChange={(r) => updateField("roles", r)}
+      />
 
       <button
         type="submit"

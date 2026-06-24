@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Topnav } from "@/components/layout/Topnav";
 import { Footer } from "@/components/layout/Footer";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
+import { AgentProvider } from "@/components/layout/AgentContext";
+import { AgentGateProvider } from "@/components/layout/AgentGateContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -26,9 +28,13 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-screen flex-col">
         <ThemeProvider>
-          <Topnav />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <AgentProvider>
+            <AgentGateProvider>
+              <Topnav />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </AgentGateProvider>
+          </AgentProvider>
         </ThemeProvider>
       </body>
     </html>

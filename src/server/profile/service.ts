@@ -12,6 +12,8 @@ export interface ProfileFormData {
   skills?: string[];
   experience?: Experience[];
   education?: Education[];
+  roles?: string[];
+  salaryExpectation?: string | null;
 }
 
 export interface Profile extends ProfileFormData {
@@ -39,6 +41,8 @@ export async function createProfile(
       skills: data.skills ?? [],
       experience: data.experience ?? [],
       education: data.education ?? [],
+      roles: data.roles ?? [],
+      salaryExpectation: data.salaryExpectation ?? null,
       createdAt: now,
       updatedAt: now,
     })
@@ -64,6 +68,8 @@ export async function updateProfile(
       skills: data.skills ?? [],
       experience: data.experience ?? [],
       education: data.education ?? [],
+      roles: data.roles ?? [],
+      salaryExpectation: data.salaryExpectation ?? null,
       updatedAt: now,
     })
     .where(eq(profiles.id, id))
@@ -87,6 +93,7 @@ export async function getProfile(
     skills: result.skills as string[],
     experience: result.experience as Experience[],
     education: result.education as Education[],
+    roles: result.roles as string[],
   };
 }
 
@@ -107,6 +114,7 @@ export async function getProfileByEmail(
     skills: result.skills as string[],
     experience: result.experience as Experience[],
     education: result.education as Education[],
+    roles: result.roles as string[],
   };
 }
 
@@ -135,5 +143,6 @@ export async function getFirstProfile(): Promise<Profile | null> {
     skills: result.skills as string[],
     experience: result.experience as Experience[],
     education: result.education as Education[],
+    roles: result.roles as string[],
   };
 }

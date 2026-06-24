@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ThemeToggle } from "./ThemeToggle";
+import { AgentStatus } from "./AgentStatus";
 
 export function Topnav() {
   return (
@@ -21,6 +22,7 @@ export function Topnav() {
           >
             Jobs
           </Link>
+          <AgentStatus />
           <ThemeToggle />
         </div>
       </div>

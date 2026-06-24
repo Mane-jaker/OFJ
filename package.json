@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@opencode-ai/sdk": "^1.17.9",
     "@react-pdf/renderer": "^4.3.0",
     "better-sqlite3": "^11.8.1",
     "class-variance-authority": "^0.7.1",

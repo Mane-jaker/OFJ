@@ -9,11 +9,10 @@ import {
   getCvStatus,
   getCvTailoredData,
 } from "@/server/cv/actions";
+import { useAgentGate } from "@/components/layout/AgentGateContext";
 import { CVDocument } from "@/components/cv/CVDocument";
 import type { CVDocumentProps } from "@/components/cv/CVDocument";
 
-// PDFDownloadLink is client-only (uses browser APIs); load it dynamically
-// to avoid SSR issues with @react-pdf/renderer's browser bundle.
 const PDFDownloadLink = dynamic(
   () =>
     import("@react-pdf/renderer").then(
@@ -43,6 +42,7 @@ interface TailoredData {
 }
 
 export function CVPreview({ jobListingId }: CVPreviewProps) {
+  const { requireAgent } = useAgentGate();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<TailoredData | null>(null);
@@ -70,30 +70,32 @@ export function CVPreview({ jobListingId }: CVPreviewProps) {
   }, [loadExisting]);
 
   async function handleGenerate() {
-    setStatus("generating");
-    setError(null);
+    requireAgent(async () => {
+      setStatus("generating");
+      setError(null);
 
-    const result = await generateCv(jobListingId);
-    if (!result.success) {
-      setError(result.error ?? "Error al generar el CV");
-      setStatus("error");
-      return;
-    }
+      const result = await generateCv(jobListingId);
+      if (!result.success) {
+        setError(result.error ?? "Error al generar el CV");
+        setStatus("error");
+        return;
+      }
 
-    const tailored = await getCvTailoredData(jobListingId);
-    if (!tailored.success) {
-      setError(tailored.error ?? "Error al cargar el CV");
-      setStatus("error");
-      return;
-    }
+      const tailored = await getCvTailoredData(jobListingId);
+      if (!tailored.success) {
+        setError(tailored.error ?? "Error al cargar el CV");
+        setStatus("error");
+        return;
+      }
 
-    setData({
-      name: tailored.name ?? "",
-      tailoredSummary: tailored.tailoredSummary ?? "",
-      tailoredSkills: tailored.tailoredSkills ?? [],
-      tailoredExperience: tailored.tailoredExperience ?? [],
-    });
-    setStatus("ready");
+      setData({
+        name: tailored.name ?? "",
+        tailoredSummary: tailored.tailoredSummary ?? "",
+        tailoredSkills: tailored.tailoredSkills ?? [],
+        tailoredExperience: tailored.tailoredExperience ?? [],
+      });
+      setStatus("ready");
+    }, "generar un CV tailored con el agent");
   }
 
   if (status === "generating") {
