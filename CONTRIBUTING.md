@@ -7,8 +7,8 @@ Thanks for your interest in contributing to OFJ! This is an open-source project 
 ```bash
 git clone https://github.com/user/ofj.git
 cd ofj
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Then open [http://localhost:3000](http://localhost:3000).
@@ -28,13 +28,13 @@ Example: `feature/cv-export-docx`.
 1. Fork the repository
 2. Create a branch following the convention above
 3. Make your changes, keep commits focused
-4. Run `npm test` and `npm run lint` — both must pass
+4. Run `pnpm test` and `pnpm lint` — both must pass
 5. Open a Pull Request against `main`
 6. Wait for review and address feedback
 
 ## Code Conventions
 
-- **ESLint** — enforced via `npm run lint`. Do not disable rules inline without justification.
+- **ESLint** — enforced via `pnpm lint`. Do not disable rules inline without justification.
 - **Prettier** — keep formatting consistent with the existing codebase.
 - **Conventional Commits** — use `feat:`, `fix:`, `chore:`, `docs:`, `test:`, `refactor:` prefixes in commit messages.
 - **TypeScript** — strict types, no `any` unless absolutely necessary and documented.
@@ -42,7 +42,7 @@ Example: `feature/cv-export-docx`.
 
 ## Testing
 
-- Run `npm test` before submitting a PR — all tests must pass.
+- Run `pnpm test` before submitting a PR — all tests must pass.
 - Tests live under `tests/` and colocated with components where applicable.
 - Use Vitest + React Testing Library. Add tests for new user-facing behavior.
 

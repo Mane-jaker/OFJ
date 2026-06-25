@@ -216,7 +216,7 @@ Vitest config: `environment: "jsdom"`, path aliases matching tsconfig, setup fil
 
 ## Migration / Rollout
 
-No migration — greenfield project. First `npm run dev` creates `data.db` automatically via better-sqlite3.
+No migration — greenfield project. First `pnpm dev` creates `data.db` automatically via better-sqlite3.
 
 ## Open Questions
 

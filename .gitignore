@@ -45,6 +45,7 @@ coverage/
 
 # Logs
 *.log
+pnpm-debug.log*
 npm-debug.log*
 
 # Misc

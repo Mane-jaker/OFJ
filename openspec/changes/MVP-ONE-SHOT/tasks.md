@@ -109,4 +109,4 @@ Batch 6: Phase 6 (tests) ════ Phase 7 (docs)               ← PARALLEL
 - [ ] 7.2 Create `CONTRIBUTING.md` — dev setup, PR flow, conventions, skills guide
 - [ ] 7.3 Create `LICENSE` — MIT
 - [ ] 7.4 Update `.gitignore` — node_modules, .next, *.db, ~/.ofj/, .env
-- [ ] 7.5 Verify: `git clone && npm install && npm run dev` works clean
+- [ ] 7.5 Verify: `git clone && pnpm install && pnpm dev` works clean

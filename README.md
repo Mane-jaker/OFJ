@@ -39,6 +39,7 @@ OFJ is an open-source AI job search agent. Upload your CV, and OFJ parses it int
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) 20+
+- [pnpm](https://pnpm.io/) 10+
 - [opencode](https://opencode.ai) CLI installed globally (for agent-powered search)
 
 ## Quickstart
@@ -46,8 +47,8 @@ OFJ is an open-source AI job search agent. Upload your CV, and OFJ parses it int
 ```bash
 git clone https://github.com/user/ofj.git
 cd ofj
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Then open [http://localhost:3000](http://localhost:3000).
@@ -87,11 +88,11 @@ tests/                # Integration tests
 
 | Command              | Description         |
 | -------------------- | ------------------- |
-| `npm run dev`        | Start dev server    |
-| `npm run build`      | Production build    |
-| `npm run lint`       | ESLint              |
-| `npm test`           | Run tests           |
-| `npm run test:watch` | Watch mode tests    |
+| `pnpm dev`           | Start dev server    |
+| `pnpm build`         | Production build    |
+| `pnpm lint`          | ESLint              |
+| `pnpm test`          | Run tests           |
+| `pnpm test:watch`    | Watch mode tests    |
 
 ## How It Works
 
