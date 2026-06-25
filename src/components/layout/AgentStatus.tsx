@@ -18,7 +18,6 @@ export function AgentStatus() {
     disconnect,
     selectModel,
     refreshProviders,
-    refreshStatus,
   } = useAgent();
 
   const [open, setOpen] = useState(false);

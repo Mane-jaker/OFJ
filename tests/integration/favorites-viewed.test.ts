@@ -10,8 +10,6 @@ import {
 } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { createProfile } from "@/server/profile/service";
-import { createSearch } from "@/server/agent/service";
 
 describe("Integration: Favorite and viewed flags", () => {
   let profileId: string;

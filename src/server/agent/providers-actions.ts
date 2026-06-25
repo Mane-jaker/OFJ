@@ -1,6 +1,7 @@
 "use server";
 
 import { isConnected, getConnection } from "./connection";
+import type { Provider } from "@opencode-ai/sdk";
 
 export interface ProviderModel {
   providerID: string;
@@ -31,22 +32,22 @@ export async function listProviders(): Promise<{
     const conn = getConnection()!;
     const response = await conn.client.config.providers();
 
-    const rawProviders = response.data?.providers ?? [];
-    const providers: ProviderInfo[] = rawProviders.map((p: any) => ({
+    const rawProviders: Provider[] = response.data?.providers ?? [];
+    const providers: ProviderInfo[] = rawProviders.map((p) => ({
       id: p.id,
       name: p.name,
     }));
 
     const models: ProviderModel[] = [];
     for (const provider of rawProviders) {
-      const modelMap = provider.models as Record<string, any> | undefined;
+      const modelMap = provider.models;
       if (!modelMap) continue;
       for (const [modelId, modelData] of Object.entries(modelMap)) {
         models.push({
           providerID: provider.id,
           providerName: provider.name,
           modelID: modelId,
-          modelName: (modelData as any).name ?? modelId,
+          modelName: modelData.name ?? modelId,
         });
       }
     }

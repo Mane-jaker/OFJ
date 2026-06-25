@@ -210,8 +210,6 @@ export async function generateCv(
     throw new Error("Job listing not found");
   }
 
-  const cacheFilePath = getCacheFilePath(jobListingId);
-
   // Cache hit: existing DB record + file on disk
   const existing = db
     .select()

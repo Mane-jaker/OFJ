@@ -7,9 +7,8 @@ import {
   loadConnection,
   clearConnection,
   isProcessAlive,
-  updateHeartbeat,
 } from "./connection-store";
-import { isHeartbeatStale, HEARTBEAT_TIMEOUT_MS } from "./heartbeat";
+import { isHeartbeatStale } from "./heartbeat";
 
 export interface OpencodeConnection {
   port: number;

@@ -1,10 +1,18 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import type { AssistantMessage, Part } from "@opencode-ai/sdk";
 import { getConnection, isConnected } from "./connection";
 import { getModel } from "./model-store";
 import { extractJson } from "./json-extract";
 
 export type AgentSkill = "ofj-search" | "ofj-generate-cv" | "ofj-parse-cv";
+
+interface AgentPromptResponse {
+  info: AssistantMessage & {
+    structured_output?: unknown;
+  };
+  parts?: Part[];
+}
 
 export interface AgentRunInput {
   skill: AgentSkill;
@@ -25,7 +33,7 @@ function readSkillContent(skill: AgentSkill): string {
   return readFileSync(path, "utf-8");
 }
 
-function buildSystemPrompt(skill: AgentSkill, skillContent: string): string {
+function buildSystemPrompt(_skill: AgentSkill, skillContent: string): string {
   const userInputPlaceholder = "## Input\n\nJSON with the following fields:";
   const additional = `\n\n## Important\n\nYou MUST respond with ONLY valid JSON matching the output format described above. No markdown fences, no extra text, no explanations.`;
 
@@ -111,7 +119,7 @@ export async function runAgent(
     const sessionResponse = await conn.client.session.create({
       body: { title: `OFJ: ${skill}` },
     });
-    const sessionId = (sessionResponse.data as any)?.id;
+    const sessionId = sessionResponse.data?.id;
     if (!sessionId) {
       return {
         success: false,
@@ -120,7 +128,7 @@ export async function runAgent(
       };
     }
 
-    const promptBody: any = {
+    const promptBody = {
       model: { providerID: model.providerID, modelID: model.modelID },
       system: systemPrompt,
       parts: [{ type: "text" as const, text: userPrompt }],
@@ -131,7 +139,7 @@ export async function runAgent(
       body: promptBody,
     });
 
-    const responseData = result.data as any;
+    const responseData = result.data as AgentPromptResponse | undefined;
     let outputText = "";
 
     if (responseData?.info?.structured_output) {
@@ -143,19 +151,24 @@ export async function runAgent(
     }
 
     if (responseData?.info?.error) {
+      const agentError = responseData.info.error;
+      const message =
+        (agentError as { data?: { message?: string } }).data?.message ??
+        agentError.name;
       return {
         success: false,
-        error: `Agent error: ${responseData.info.error.message || responseData.info.error.name}`,
+        error: `Agent error: ${message}`,
         durationMs: Date.now() - start,
       };
     }
 
-    const parts = (responseData?.parts ?? []) as Array<any>;
+    const parts = responseData?.parts ?? [];
     for (const part of parts) {
       if (part.type === "text" && part.text) {
         outputText += part.text;
-      } else if (part.type === "tool" && part.state === "completed") {
-        const content = part.content ?? part.result ?? "";
+      } else if (part.type === "tool" && part.state.status === "completed") {
+        const content =
+          (part.state as { output?: string }).output ?? "";
         if (typeof content === "string") outputText += content;
       }
     }

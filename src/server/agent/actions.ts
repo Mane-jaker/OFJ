@@ -5,7 +5,6 @@ import {
   getSearchStatus as getSearchStatusService,
   getSearchById,
   getJobListings,
-  updateSearchStatus,
   executeSearch,
 } from "./service";
 

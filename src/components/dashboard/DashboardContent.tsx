@@ -54,7 +54,7 @@ export function DashboardContent({
   favoriteJobs,
 }: DashboardContentProps) {
   const router = useRouter();
-  const { model: globalModel, models, selectModel } = useAgent();
+  const { model: globalModel, selectModel } = useAgent();
   const { requireAgent } = useAgentGate();
   const [activeTab, setActiveTab] = useState<TabId>("search");
   const [model, setModel] = useState("");

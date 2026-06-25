@@ -7,7 +7,7 @@ import {
   getConnection,
   checkHealth,
 } from "./connection";
-import { setModel, getModel, getModelString, clearModel } from "./model-store";
+import { setModel, getModelString, clearModel } from "./model-store";
 import { updateHeartbeat } from "./connection-store";
 
 export type AgentStatus =

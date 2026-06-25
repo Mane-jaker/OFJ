@@ -10,14 +10,10 @@ import {
 } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import fs from "node:fs";
-import path from "node:path";
-import os from "node:os";
-import { nanoid } from "nanoid";
 import { createProfile } from "@/server/profile/service";
 import { createSearch, executeSearch, getJobListings } from "@/server/agent/service";
 import { generateCv, getCvByJobListing } from "@/server/cv/service";
 
-const cacheDir = path.join(os.homedir(), ".ofj", "cache");
 const createdFiles: string[] = [];
 
 describe("Integration: CV generation and cache", () => {
